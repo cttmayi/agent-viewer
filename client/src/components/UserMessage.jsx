@@ -46,8 +46,9 @@ export default function UserMessage({ message }) {
       marginBottom: '12px'
     }}>
       <div style={textStyle}>
-        <div style={{ fontSize: '11px', color: 'var(--accent-color)', marginBottom: '6px', fontWeight: 500 }}>
-          用户 · {time}
+        <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--accent-color)' }}>用户</span>
+          {time && <span style={{ color: 'var(--text-secondary)' }}>{time}</span>}
         </div>
         <div ref={textRef} style={textClamp}>
           {text}
