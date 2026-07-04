@@ -55,6 +55,11 @@ export default function SettingsPanel({ onClose }) {
     try {
       const parsed = JSON.parse(pricesText);
       if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('需要 JSON 对象');
+      for (const [name, model] of Object.entries(parsed)) {
+        if (!model.currency || model.input == null || model.output == null) {
+          throw new Error(`"${name}" 缺少 currency、input 或 output`);
+        }
+      }
       setParseError('');
       setSaveStatus('保存中...');
       updateModelPrices(parsed).then(() => setSaveStatus('已保存')).catch(() => setSaveStatus('保存失败'));

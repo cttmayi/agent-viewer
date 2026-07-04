@@ -16,12 +16,14 @@ export function calcMessageCost(tokenUsage, modelName, modelPrices) {
   }
 
   const prices = modelPrices[modelName];
+  if (prices.input == null || prices.output == null) return null;
+
   const usage = tokenUsage || {};
 
   const input = ((usage.input || 0) / 1_000_000) * prices.input;
   const output = ((usage.output || 0) / 1_000_000) * prices.output;
-  const cacheWrite = ((usage.cacheCreate || 0) / 1_000_000) * prices.cacheWrite;
-  const cacheRead = ((usage.cacheRead || 0) / 1_000_000) * prices.cacheRead;
+  const cacheWrite = ((usage.cacheCreate || 0) / 1_000_000) * (prices.cacheWrite || 0);
+  const cacheRead = ((usage.cacheRead || 0) / 1_000_000) * (prices.cacheRead || 0);
   const total = input + output + cacheWrite + cacheRead;
 
   return {
