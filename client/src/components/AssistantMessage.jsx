@@ -64,12 +64,12 @@ export default function AssistantMessage({ message }) {
         fontSize: '14px', lineHeight: '1.5',
         position: 'relative'
       }}>
-        <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           <span style={{ color: 'var(--accent-color)' }}>AI</span>
-          {message.model && <span style={{ color: '#4fc3f7' }}>{message.model}</span>}
-          <span style={{ color: 'var(--text-secondary)' }}>{[time, duration].filter(Boolean).join(' · ')}</span>
-          {tokenBreakdown && <span style={{ color: '#34d399' }}>{tokenBreakdown}</span>}
-          {msgCost && <span style={{ color: '#e6a817' }}>{msgCost}</span>}
+          {message.model && <span style={{ color: '#4fc3f7' }}> · {message.model}</span>}
+          <span style={{ color: 'var(--text-secondary)' }}> · {[time, duration].filter(Boolean).join(' · ')}</span>
+          {tokenBreakdown && <span style={{ color: '#34d399' }}> · {tokenBreakdown}</span>}
+          {msgCost && <span style={{ color: '#e6a817' }}> · {msgCost}</span>}
         </div>
         <ThinkingBlock thinking={thinkingText} />
         {text && <div ref={textRef} style={textClamp}>{text}</div>}
