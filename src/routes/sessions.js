@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { calcSessionCost } from '../cost.js';
 
 const router = Router();
 
@@ -9,12 +10,21 @@ router.get('/directory-tree', (req, res) => {
 });
 
 router.get('/:fileId', (req, res) => {
-  const { store } = req.app.locals;
+  const { store, config } = req.app.locals;
   const filePath = Buffer.from(req.params.fileId, 'base64').toString('utf-8');
   const data = store.get(filePath);
   if (!data) return res.status(404).json({ error: '会话未找到' });
 
   data.session.filePath = filePath;
+
+  // Inject cost data
+  const costs = calcSessionCost(data.messages || [], config.modelPrices || {});
+  data.costs = costs;
+  for (let i = 0; i < data.messages.length; i++) {
+    data.messages[i].cost = costs.messageCosts[i] || null;
+  }
+  // Also add to stats for StatsHeader access
+  data.stats.totalByCurrency = costs.totalByCurrency;
 
   // Link subagent groups to Agent tool_uses by timestamp ordering
   if (data.session && data.session.id && data.messages) {
