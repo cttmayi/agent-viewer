@@ -30,6 +30,34 @@ function responseItem(overrides = {}) {
   };
 }
 
+function tokenCountEvent(timestamp, lastUsage) {
+  return {
+    type: 'event_msg',
+    timestamp,
+    payload: {
+      type: 'token_count',
+      info: {
+        total_token_usage: { ...lastUsage },
+        last_token_usage: { ...lastUsage },
+        model_context_window: 258400
+      },
+      rate_limits: {}
+    }
+  };
+}
+
+function turnContext(timestamp, model) {
+  return {
+    type: 'turn_context',
+    timestamp,
+    payload: {
+      turn_id: 'turn-1',
+      model: model || 'codex',
+      cwd: '/test'
+    }
+  };
+}
+
 function buildJSONL(...records) {
   return records.map(r => JSON.stringify(r)).join('\n');
 }
@@ -248,16 +276,51 @@ describe('codex parser', () => {
       expect(result.stats.totalTurns).toBe(2);
     });
 
-    it('has zero tokens in stats (codex format does not provide them)', () => {
+    it('extracts token usage from token_count events', () => {
       const meta = metaRecord();
-      const u = responseItem({ role: 'user' });
-      const a = responseItem({ role: 'assistant' });
+      const tc = turnContext('2026-01-01T00:00:00.500Z', 'gpt-4o');
+      const u = responseItem({ role: 'user', timestamp: '2026-01-01T00:00:01.000Z' });
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'hi' }], timestamp: '2026-01-01T00:00:02.000Z' });
+      const tk = tokenCountEvent('2026-01-01T00:00:03.000Z', { input_tokens: 100, output_tokens: 20, cached_input_tokens: 10 });
+      const raw = buildJSONL(meta, tc, u, a, tk);
+
+      const result = parser.parse(raw);
+      expect(result.messages).toHaveLength(2);
+      const asst = result.messages[1];
+      expect(asst.role).toBe('assistant');
+      expect(asst.tokenUsage).toEqual({ input: 100, output: 20, cacheCreate: 0, cacheRead: 10 });
+      expect(asst.model).toBe('gpt-4o');
+    });
+
+    it('updates stats with token totals from multiple turns', () => {
+      const meta = metaRecord();
+      const tc1 = turnContext('2026-01-01T00:00:00.500Z');
+      const u1 = responseItem({ role: 'user', timestamp: 't1' });
+      const a1 = responseItem({ role: 'assistant', timestamp: 't2' });
+      const tk1 = tokenCountEvent('t3', { input_tokens: 100, output_tokens: 20, cached_input_tokens: 10 });
+      const tc2 = turnContext('t4');
+      const u2 = responseItem({ role: 'user', timestamp: 't5' });
+      const a2 = responseItem({ role: 'assistant', timestamp: 't6' });
+      const tk2 = tokenCountEvent('t7', { input_tokens: 200, output_tokens: 50, cached_input_tokens: 30 });
+      const raw = buildJSONL(meta, tc1, u1, a1, tk1, tc2, u2, a2, tk2);
+
+      const result = parser.parse(raw);
+      expect(result.stats.totalInputTokens).toBe(300);
+      expect(result.stats.totalOutputTokens).toBe(70);
+      expect(result.stats.totalCacheReadTokens).toBe(40);
+      expect(result.messages[1].tokenUsage.input).toBe(100);
+      expect(result.messages[3].tokenUsage.input).toBe(200);
+    });
+
+    it('handles assistant messages without matching token_count', () => {
+      const meta = metaRecord();
+      const u = responseItem({ role: 'user', timestamp: '2026-01-01T00:00:01.000Z' });
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'hi' }], timestamp: '2026-01-01T00:00:02.000Z' });
       const raw = buildJSONL(meta, u, a);
 
       const result = parser.parse(raw);
+      expect(result.messages[1].tokenUsage).toBeUndefined();
       expect(result.stats.totalInputTokens).toBe(0);
-      expect(result.stats.totalOutputTokens).toBe(0);
-      expect(result.stats.toolCallCount).toBe(0);
     });
   });
 });
