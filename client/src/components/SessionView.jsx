@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import StatsHeader from './StatsHeader.jsx';
 import MessageList from './MessageList.jsx';
+import { useSettingsContext } from '../hooks/SettingsContext.jsx';
 import { useSubagentPanel } from '../hooks/SubagentPanelContext.jsx';
+import { calcMessageCost, calcSessionCost } from '../utils/cost.js';
 
 function SubagentDetailPanel() {
   const { subagent, clearSubagent } = useSubagentPanel();
@@ -38,6 +40,7 @@ export default function SessionView({ session, onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { modelPrices } = useSettingsContext();
 
   const fileId = session?.session?.filePath
     ? btoa(unescape(encodeURIComponent(session.session.filePath)))
@@ -55,9 +58,21 @@ export default function SessionView({ session, onBack }) {
     return () => controller.abort();
   }, [fileId]);
 
+  // Recalculate costs when modelPrices change (live update without refresh)
+  const liveData = useMemo(() => {
+    if (!data) return null;
+    const costs = calcSessionCost(data.messages || [], modelPrices);
+    return {
+      ...data,
+      costs,
+      messages: data.messages.map((msg, i) => ({ ...msg, cost: costs.messageCosts[i] || null })),
+      stats: { ...data.stats, totalByCurrency: costs.totalByCurrency },
+    };
+  }, [data, modelPrices]);
+
   if (loading) return <div role="status" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>加载中...</div>;
   if (error) return <div role="alert" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'red' }}>{error}</div>;
-  if (!data) return null;
+  if (!liveData) return null;
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -68,8 +83,8 @@ export default function SessionView({ session, onBack }) {
             ← 返回列表
           </button>
         </div>
-        <StatsHeader session={data.session} stats={data.stats} />
-        <MessageList messages={data.messages} />
+        <StatsHeader session={liveData.session} stats={liveData.stats} />
+        <MessageList messages={liveData.messages} />
       </div>
       {/* 子 agent 详情面板 */}
       <SubagentDetailPanel />
