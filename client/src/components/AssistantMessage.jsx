@@ -64,8 +64,10 @@ export default function AssistantMessage({ message }) {
         fontSize: '14px', lineHeight: '1.5',
         position: 'relative'
       }}>
-        <div style={{ fontSize: '11px', color: 'var(--accent-color)', marginBottom: '6px', fontWeight: 500 }}>
-          AI{message.model ? ` · ${message.model}` : ''} · {[time, duration, tokenBreakdown, msgCost].filter(Boolean).join(' · ')}
+        <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--accent-color)' }}>AI{message.model ? ` · ${message.model}` : ''} · {time}{duration ? ` · ${duration}` : ''}</span>
+          {tokenBreakdown && <span style={{ color: 'var(--text-secondary)' }}>{tokenBreakdown}</span>}
+          {msgCost && <span style={{ color: '#e6a817' }}>{msgCost}</span>}
         </div>
         <ThinkingBlock thinking={thinkingText} />
         {text && <div ref={textRef} style={textClamp}>{text}</div>}
