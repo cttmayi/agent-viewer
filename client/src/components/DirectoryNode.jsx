@@ -1,39 +1,64 @@
 import React, { useState } from 'react';
 import SessionNode from './SessionNode.jsx';
 
+function matchesFilter(node, filter) {
+  if (!filter) return true;
+  const q = filter.toLowerCase();
+  const title = node.session?.title || '';
+  if (title.toLowerCase().includes(q)) return true;
+  if (node.session?.agentType?.toLowerCase().includes(q)) return true;
+  return false;
+}
+
+function hasVisibleChildren(node, filter) {
+  if (!node.children) return false;
+  return node.children.some(child => {
+    if (child.type === 'directory') return hasVisibleChildren(child, filter);
+    return matchesFilter(child, filter);
+  });
+}
+
 export default function DirectoryNode({ node, filter, onSelect, selectedSessionId, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth === 0);
-  const hasChildren = node.children && node.children.length > 0;
+  const visible = filter ? hasVisibleChildren(node, filter) : true;
   const indent = depth * 16;
+
+  if (!visible) return null;
+
+  const isFiltering = !!filter;
+  const filteredChildren = (isFiltering || expanded) && node.children
+    .map(child => {
+      if (child.type === 'file' && child.session?.startTime) {
+        return { ...child, _sortTime: new Date(child.session.startTime).getTime() };
+      }
+      return { ...child, _sortTime: 0 };
+    })
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+      if (a.type === 'file') return b._sortTime - a._sortTime;
+      return a.name.localeCompare(b.name);
+    })
+    .filter(child => {
+      if (child.type === 'directory') return hasVisibleChildren(child, filter);
+      return matchesFilter(child, filter);
+    });
 
   return (
     <div>
       <div
-        onClick={() => hasChildren && setExpanded(!expanded)}
+        onClick={() => setExpanded(!expanded)}
         style={{
           padding: '4px 8px 4px ' + (12 + indent) + 'px',
-          cursor: hasChildren ? 'pointer' : 'default',
+          cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: '4px',
           fontSize: '13px', color: 'var(--text-secondary)',
           userSelect: 'none'
         }}
       >
-        {hasChildren ? (expanded ? '▼' : '▶') : ' '}
+        {expanded ? '▼' : '▶'}
         <span>{node.name}</span>
       </div>
-      {expanded && hasChildren && node.children
-        .map(child => {
-          if (child.type === 'file' && child.session?.startTime) {
-            return { ...child, _sortTime: new Date(child.session.startTime).getTime() };
-          }
-          return { ...child, _sortTime: 0 };
-        })
-        .sort((a, b) => {
-          if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-          if (a.type === 'file') return b._sortTime - a._sortTime; // newest first
-          return a.name.localeCompare(b.name);
-        })
-        .map(child =>
+      {(isFiltering || expanded) && filteredChildren.map(child =>
         child.type === 'directory' ? (
           <DirectoryNode
             key={child.name}
