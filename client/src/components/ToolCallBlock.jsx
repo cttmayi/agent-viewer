@@ -2,6 +2,39 @@ import React, { useState } from 'react';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
 import { useSubagentPanel } from '../hooks/SubagentPanelContext.jsx';
 
+const TOOL_KEY_PARAMS = {
+  Bash: 'command',
+  Read: 'file_path',
+  Write: 'file_path',
+  Edit: 'file_path',
+  Glob: 'pattern',
+  Grep: 'pattern',
+  Agent: 'prompt',
+  WebSearch: 'query',
+  WebFetch: 'url',
+  TaskCreate: 'subject',
+  TaskUpdate: 'taskId',
+  Skill: 'skill',
+  exec_command: 'cmd',
+  write_stdin: 'session_id',
+};
+
+function getParamPreview(tc) {
+  const input = tc.input;
+  if (!input || typeof input !== 'object') return '';
+  const key = TOOL_KEY_PARAMS[tc.name];
+  if (key && input[key] !== undefined) {
+    const val = typeof input[key] === 'string' ? input[key] : JSON.stringify(input[key]);
+    return `${key}: "${val}"`;
+  }
+  const keys = Object.keys(input);
+  if (keys.length > 0) {
+    const val = typeof input[keys[0]] === 'string' ? input[keys[0]] : JSON.stringify(input[keys[0]]);
+    return `${keys[0]}: "${val}"`;
+  }
+  return '';
+}
+
 function formatOutput(output) {
   if (typeof output === 'string') return output;
   if (Array.isArray(output)) {
@@ -23,11 +56,10 @@ export default function ToolCallBlock({ toolCalls }) {
 
   const [expanded, setExpanded] = useState(showSetting === 'unfold');
 
-  const toolSummary = toolCalls.reduce((acc, tc) => {
-    const name = tc.name || 'unknown';
-    acc[name] = (acc[name] || 0) + 1;
-    return acc;
-  }, {});
+  const toolSummary = toolCalls.map(tc => {
+    const preview = getParamPreview(tc);
+    return preview ? `${tc.name}(${preview})` : tc.name;
+  });
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -50,8 +82,10 @@ export default function ToolCallBlock({ toolCalls }) {
         aria-controls="tool-calls-content"
         style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
-        <span>{expanded ? '▼' : '▶'} 工具调用: {Object.entries(toolSummary).map(([k, v]) => `${k}(${v})`).join(', ')}
-        {hasResult && !expanded && ' ✓'}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {expanded ? '▼' : '▶'} 工具: {toolSummary.join(', ')}
+          {hasResult && !expanded && ' ✓'}
+        </span>
         {hasSubagent && (
           <span
             role="button"

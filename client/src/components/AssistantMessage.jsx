@@ -18,7 +18,7 @@ export default function AssistantMessage({ message }) {
     const t = c.thinking || c.text;
     return typeof t === 'string' ? t : JSON.stringify(t);
   }).join('\n');
-  const time = message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : '';
+  const time = message.timestamp ? new Date(message.timestamp).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
   const tokens = message.tokenUsage?.output ? `${message.tokenUsage.output} tokens` : '';
   const duration = message.duration ? `${(message.duration / 1000).toFixed(1)}s` : '';
 
@@ -29,13 +29,12 @@ export default function AssistantMessage({ message }) {
     }
   }, [text, maxLines, expanded]);
 
-  const textStyle = {};
-  if (maxLines > 0 && !expanded) {
-    textStyle.display = '-webkit-box';
-    textStyle.WebkitLineClamp = maxLines;
-    textStyle.WebkitBoxOrient = 'vertical';
-    textStyle.overflow = 'hidden';
-  }
+  const textClamp = maxLines > 0 && !expanded ? {
+    display: '-webkit-box',
+    WebkitLineClamp: maxLines,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden'
+  } : {};
 
   const showButton = maxLines > 0 && text && (overflows || expanded);
 
@@ -48,24 +47,23 @@ export default function AssistantMessage({ message }) {
         fontSize: '14px', lineHeight: '1.5',
         position: 'relative'
       }}>
+        <div style={{ fontSize: '11px', color: 'var(--accent-color)', marginBottom: '6px', fontWeight: 500 }}>
+          AI{message.model ? ` · ${message.model}` : ''} · {[time, duration, tokens].filter(Boolean).join(' · ')}
+        </div>
         <ThinkingBlock thinking={thinkingText} />
-        {text && <div ref={textRef} style={textStyle}>{text}</div>}
+        {text && <div ref={textRef} style={textClamp}>{text}</div>}
         {showButton && (
           <div
             onClick={() => setExpanded(!expanded)}
             style={{
-              position: 'absolute', top: '8px', right: '12px', zIndex: 1,
               fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none',
-              background: 'var(--assistant-msg-bg)', padding: '0 4px', borderRadius: '3px'
+              textAlign: 'right', marginTop: '4px'
             }}
           >
             {expanded ? '收起' : '展开全部'}
           </div>
         )}
         <ToolCallBlock toolCalls={message.toolCalls} />
-      </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-        AI{message.model ? ` · ${message.model}` : ''} · {[time, duration, tokens].filter(Boolean).join(' · ')}
       </div>
     </div>
   );

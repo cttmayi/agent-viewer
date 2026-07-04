@@ -14,7 +14,7 @@ export default function UserMessage({ message }) {
     const t = typeof c === 'string' ? c : c.text;
     return (typeof t === 'string' ? t : JSON.stringify(t)) ?? '';
   }).filter(Boolean).join('\n') || '';
-  const time = message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : '';
+  const time = message.timestamp ? new Date(message.timestamp).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
 
   useLayoutEffect(() => {
     const el = textRef.current;
@@ -27,41 +27,42 @@ export default function UserMessage({ message }) {
 
   const textStyle = {
     background: 'var(--user-msg-bg)', borderRadius: '8px',
-    padding: '10px 14px', maxWidth: '80%',
+    padding: '10px 14px', maxWidth: '85%',
     whiteSpace: 'pre-wrap', wordBreak: 'break-word',
     fontSize: '14px', lineHeight: '1.5',
     position: 'relative'
   };
-  if (maxLines > 0 && !expanded) {
-    textStyle.WebkitLineClamp = maxLines;
-    textStyle.display = '-webkit-box';
-    textStyle.WebkitBoxOrient = 'vertical';
-    textStyle.overflow = 'hidden';
-  }
+  const textClamp = maxLines > 0 && !expanded ? {
+    WebkitLineClamp: maxLines,
+    display: '-webkit-box',
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden'
+  } : {};
 
   const showButton = maxLines > 0 && (overflows || expanded);
 
   return (
     <div style={{
-      marginBottom: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end'
+      marginBottom: '12px'
     }}>
-      <div ref={textRef} style={textStyle}>
-        {text}
+      <div style={textStyle}>
+        <div style={{ fontSize: '11px', color: 'var(--accent-color)', marginBottom: '6px', fontWeight: 500 }}>
+          用户 · {time}
+        </div>
+        <div ref={textRef} style={textClamp}>
+          {text}
+        </div>
         {showButton && (
           <div
             onClick={() => setExpanded(!expanded)}
             style={{
-              position: 'absolute', top: '6px', right: '8px', zIndex: 1,
               fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none',
-              background: 'var(--user-msg-bg)', padding: '0 4px', borderRadius: '3px'
+              textAlign: 'right', marginTop: '4px'
             }}
           >
             {expanded ? '收起' : '展开全部'}
           </div>
         )}
-      </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-        用户 · {time}
       </div>
     </div>
   );
