@@ -20,21 +20,21 @@ const DEFAULT_CONFIG = {
     theme: 'system'             // 'light' | 'dark' | 'system'
   },
   modelPrices: {
-    "claude-sonnet-4-20250514": {
+    "model-a": {
       "currency": "USD",
       "input": 3,
       "output": 15,
       "cacheWrite": 3.75,
       "cacheRead": 0.30
     },
-    "claude-opus-4-20250514": {
+    "model-b": {
       "currency": "USD",
       "input": 15,
       "output": 75,
       "cacheWrite": 7.50,
       "cacheRead": 1.50
     },
-    "deepseek-chat": {
+    "model-c": {
       "currency": "CNY",
       "input": 2,
       "output": 8,
