@@ -2,6 +2,8 @@
 
 本地 Web 工具，用于浏览和审查 Claude Code 和 Codex CLI 的对话历史记录。
 
+[GitHub 仓库](https://github.com/cttmayi/agent-viewer)
+
 ## 功能
 
 - **目录树浏览** — 按文件目录结构展示会话列表，支持展开/收起
@@ -20,13 +22,16 @@
 ## 快速开始
 
 ```bash
-# 安装依赖（含前端和后端）
-npm install
+# 一行命令直接运行（自动安装 + 构建）
+npx github:cttmayi/agent-viewer
+```
 
-# 构建前端
-npm run build
+或者 clone 到本地：
 
-# 启动服务
+```bash
+git clone https://github.com/cttmayi/agent-viewer.git
+cd agent-viewer
+npm install    # 自动构建前端
 npm run dev
 ```
 
@@ -62,12 +67,12 @@ npm run test:watch
 
 | 模块 | 文件 | 用例数 |
 |------|------|--------|
-| Claude Code 解析器 | `tests/parsers/claude-code.test.js` | 18 |
-| Codex 解析器 | `tests/parsers/codex.test.js` | 14 |
+| Claude Code 解析器 | `tests/parsers/claude-code.test.js` | 21 |
+| Codex 解析器 | `tests/parsers/codex.test.js` | 18 |
 | 解析器注册 | `tests/parsers/registry.test.js` | 7 |
-| 内存存储 | `tests/store.test.js` | 12 |
+| 内存存储 | `tests/store.test.js` | 17 |
 | 配置模块 | `tests/config.test.js` | 9 |
-| 文件监听 | `tests/watcher.test.js` | 10 |
+| 文件监听 | `tests/watcher.test.js` | 15 |
 | WebSocket | `tests/websocket.test.js` | 5 |
 
 ## 配置
