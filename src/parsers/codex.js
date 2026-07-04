@@ -212,7 +212,7 @@ export function parse(rawText) {
     startTime,
     endTime: messages[messages.length - 1]?.timestamp || '',
     messageCount: messages.length,
-    totalTokens: 0,
+    totalTokens: totalInput + totalOutput,
     model: modelProvider,
     cwd,
     gitBranch: '',
