@@ -4,7 +4,7 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CONFIG_DIR = path.join(os.homedir(), '.agent-view');
+const CONFIG_DIR = path.join(os.homedir(), '.agent-viewer');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 
 const DEFAULT_CONFIG = {

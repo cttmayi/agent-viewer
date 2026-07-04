@@ -8,6 +8,7 @@
 - **会话详情** — 查看完整对话流，包含用户/AI/系统消息
 - **统计摘要** — 消息数、Token 用量（输入/输出/缓存）、耗时、工具调用统计、模型用量
 - **子代理侧链** — 自动识别并分组 `isSidechain=true` 的子对话
+- **子代理面板** — 右侧独立面板查看子 agent 完整对话过程
 - **格式支持**
   - Claude Code JSONL — 基于 `parentUuid` 的消息树构建、sidechain 提取
   - Codex JSONL — `session_meta` + `response_item` 格式
@@ -71,7 +72,7 @@ npm run test:watch
 
 ## 配置
 
-配置文件 `agent-viewer.config.json` 在项目根目录自动生成。
+配置文件 `~/.agent-viewer/config.json` 在首次启动时自动生成。
 
 ### 日志目录
 
@@ -111,15 +112,17 @@ agent-viewer/
 │   │   │   ├── SessionView.jsx    # 会话详情容器
 │   │   │   ├── StatsHeader.jsx    # 统计摘要栏
 │   │   │   ├── MessageList.jsx    # 消息流容器
-│   │   │   ├── UserMessage.jsx    # 用户消息气泡
-│   │   │   ├── AssistantMessage.jsx# AI 消息气泡
+│   │   │   ├── UserMessage.jsx    # 用户消息气泡（左对齐，85% 宽度）
+│   │   │   ├── AssistantMessage.jsx# AI 消息气泡（含模型/时间元数据）
 │   │   │   ├── SystemMessage.jsx  # 系统消息
 │   │   │   ├── ThinkingBlock.jsx  # thinking 折叠块
-│   │   │   ├── ToolCallBlock.jsx  # 工具调用折叠块
-│   │   │   └── SidechainGroup.jsx # 子代理侧链折叠组
+│   │   │   ├── ToolCallBlock.jsx  # 工具调用折叠块（含参数预览）
+│   │   │   ├── SidechainGroup.jsx # 子代理侧链折叠组
+│   │   │   └── SubagentPanel.jsx  # 右侧子 agent 面板
 │   │   ├── hooks/
 │   │   │   ├── useSettings.js     # 设置 API 读写
 │   │   │   ├── SettingsContext.jsx # 设置上下文（全局共享）
+│   │   │   ├── SubagentPanelContext.jsx # 子 agent 面板状态
 │   │   │   └── useWebSocket.js    # WebSocket 连接管理
 │   │   └── styles/
 │   │       └── variables.css      # CSS 变量 + 主题
