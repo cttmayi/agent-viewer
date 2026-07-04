@@ -56,7 +56,8 @@ export function parse(rawText) {
         cacheCreate: rec.message.usage.cache_creation?.ephemeral_1h_input_tokens,
         cacheRead: rec.message.usage.cache_read_input_tokens
       } : undefined,
-      toolCalls: extractToolCalls(rec)
+      toolCalls: extractToolCalls(rec),
+      model: rec.message?.model || ''
     };
     messageMap.set(msg.id, msg);
   }
@@ -127,6 +128,7 @@ export function parse(rawText) {
           prev.tokenUsage.input += msg.tokenUsage.input || 0;
           prev.tokenUsage.output += msg.tokenUsage.output || 0;
         }
+        if (!prev.model && msg.model) prev.model = msg.model;
         continue;
       }
       result.push(msg);
