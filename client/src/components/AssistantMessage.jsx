@@ -65,7 +65,10 @@ export default function AssistantMessage({ message }) {
         position: 'relative'
       }}>
         <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ color: 'var(--accent-color)' }}>AI{message.model ? ` · ${message.model}` : ''} · {time}{duration ? ` · ${duration}` : ''}</span>
+          <span style={{ color: 'var(--accent-color)' }}>AI</span>
+          {message.model && <span style={{ color: '#4fc3f7' }}>{message.model}</span>}
+          {time && <span style={{ color: 'var(--text-secondary)' }}>{time}</span>}
+          {duration && <span style={{ color: 'var(--text-muted)' }}>{duration}</span>}
           {tokenBreakdown && <span style={{ color: 'var(--text-secondary)' }}>{tokenBreakdown}</span>}
           {msgCost && <span style={{ color: '#e6a817' }}>{msgCost}</span>}
         </div>
