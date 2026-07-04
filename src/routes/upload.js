@@ -11,12 +11,41 @@ const upload = multer({
 });
 const router = Router();
 
+function normalizeContent(msg) {
+  if (msg.content && !Array.isArray(msg.content)) {
+    msg.content = [{ type: 'text', text: String(msg.content) }];
+  }
+  return msg;
+}
+
 router.post('/', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '未提供文件' });
   const { store, wss } = req.app.locals;
   try {
     const raw = await fs.readFile(req.file.path, 'utf-8');
+    const lines = raw.trim().split('\n').filter(Boolean);
+    if (lines.length === 0) return res.status(400).json({ error: '空文件' });
+
+    // check if this is a sidechain file before full parse
+    let isSidechain = false;
+    let sidechainSessionId = '';
+    try {
+      const first = JSON.parse(lines[0]);
+      isSidechain = !!first.isSidechain;
+      sidechainSessionId = first.sessionId || '';
+    } catch (e) { /* will fail parseFile */ }
+
     const result = parseFile(raw, req.file.originalname);
+
+    if (isSidechain && sidechainSessionId) {
+      const flatMessages = (result.messages[0]?.sidechainMessages?.length
+        ? [result.messages[0], ...result.messages[0].sidechainMessages]
+        : result.messages
+      ).map(normalizeContent);
+      store.addSidechainGroup(sidechainSessionId, flatMessages);
+      return res.json({ success: true, type: 'sidechain', parentId: sidechainSessionId });
+    }
+
     // place uploaded sessions under a virtual Uploads/ directory in the tree
     const safeName = req.file.originalname.replace(/[/\\]/g, '_');
     const storeKey = `Uploads/${Date.now()}_${safeName}`;

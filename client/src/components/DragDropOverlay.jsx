@@ -1,5 +1,33 @@
 import React, { useState, useRef } from 'react';
 
+function getFilesRecursively(entry) {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      if (entry.name.endsWith('.jsonl')) {
+        entry.file(resolve);
+      } else {
+        resolve(null);
+      }
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const allEntries = [];
+      function readBatch() {
+        reader.readEntries((entries) => {
+          if (entries.length === 0) {
+            Promise.all(allEntries).then((files) => resolve(files.filter(Boolean)));
+          } else {
+            allEntries.push(...entries.map(getFilesRecursively));
+            readBatch();
+          }
+        });
+      }
+      readBatch();
+    } else {
+      resolve(null);
+    }
+  });
+}
+
 export default function DragDropOverlay() {
   const [dragging, setDragging] = useState(false);
   const dragCount = useRef(0);
@@ -25,7 +53,15 @@ export default function DragDropOverlay() {
     setDragging(false);
     dragCount.current = 0;
 
-    const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.jsonl'));
+    const promises = [];
+    for (const item of e.dataTransfer.items) {
+      const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+      if (entry) {
+        promises.push(getFilesRecursively(entry));
+      }
+    }
+    const results = await Promise.all(promises);
+    const files = results.flat().filter(Boolean);
     if (files.length === 0) return;
 
     for (const file of files) {
@@ -52,7 +88,7 @@ export default function DragDropOverlay() {
           fontSize: '20px', color: 'var(--accent-color)',
           pointerEvents: 'auto'
         }}>
-          拖放 .jsonl 文件以导入会话
+          拖放 .jsonl 文件或目录以导入会话
         </div>
       )}
     </div>
