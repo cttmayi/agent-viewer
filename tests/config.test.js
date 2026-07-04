@@ -1,10 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const { mockStore } = vi.hoisted(() => ({ mockStore: { data: null } }));
+
 // Mock fs/promises before importing config
 vi.mock('fs/promises', () => {
   const mockFs = {
-    readFile: vi.fn(),
-    writeFile: vi.fn().mockResolvedValue(),
+    readFile: vi.fn().mockImplementation(() => {
+      if (mockStore.data !== null) {
+        return Promise.resolve(mockStore.data);
+      }
+      const err = new Error('ENOENT');
+      err.code = 'ENOENT';
+      return Promise.reject(err);
+    }),
+    writeFile: vi.fn().mockImplementation((_path, data) => {
+      mockStore.data = data;
+      return Promise.resolve();
+    }),
     copyFile: vi.fn().mockResolvedValue(),
     mkdir: vi.fn().mockResolvedValue(),
   };
@@ -33,21 +45,20 @@ function makeDefaultConfig() {
 describe('config module', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockStore.data = null;
   });
 
   // Mock helpers
   function mockConfigExists(data) {
-    fs.readFile.mockResolvedValue(JSON.stringify(data));
+    mockStore.data = JSON.stringify(data);
   }
 
   function mockConfigMissing() {
-    const err = new Error('ENOENT');
-    err.code = 'ENOENT';
-    fs.readFile.mockRejectedValue(err);
+    mockStore.data = null;
   }
 
   function mockConfigCorrupted() {
-    fs.readFile.mockResolvedValue('not json{{{');
+    mockStore.data = 'not json{{{';
   }
 
   describe('initConfig', () => {
@@ -101,7 +112,7 @@ describe('config module', () => {
     });
 
     it('returns default config on read failure', async () => {
-      fs.readFile.mockRejectedValue(new Error('any error'));
+      mockConfigMissing();
       const result = await configModule.getConfig();
       expect(result.directories).toHaveLength(2);
     });
@@ -136,5 +147,15 @@ describe('config module', () => {
       expect(written.settings.theme).toBe('dark');
       expect(written.settings.messageMaxLines).toBe(15);
     });
+  });
+
+  it('persists modelPrices config', async () => {
+    mockConfigExists(makeDefaultConfig());
+    const prices = { 'test-model': { currency: 'USD', input: 1, output: 2, cacheWrite: 0.5, cacheRead: 0.1 } };
+    const config = await configModule.updateConfig({ modelPrices: prices });
+    expect(config.modelPrices).toEqual(prices);
+
+    const loaded = await configModule.getConfig();
+    expect(loaded.modelPrices).toEqual(prices);
   });
 });
