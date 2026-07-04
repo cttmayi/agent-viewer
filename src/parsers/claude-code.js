@@ -259,6 +259,15 @@ function computeStats(flatMessages, allRecords, systemRecords) {
         toolCount[tc.name] = (toolCount[tc.name] || 0) + 1;
       }
     }
+    // Include sidechain/subagent messages in token stats
+    for (const sc of msg.sidechainMessages || []) {
+      if (sc.tokenUsage) {
+        totalInput += sc.tokenUsage.input || 0;
+        totalOutput += sc.tokenUsage.output || 0;
+        totalCacheCreate += sc.tokenUsage.cacheCreate || 0;
+        totalCacheRead += sc.tokenUsage.cacheRead || 0;
+      }
+    }
   }
 
   for (const rec of systemRecords) {

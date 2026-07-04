@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { calcSessionCost } from '../cost.js';
+import { calcSessionCost, calcMessageCost } from '../cost.js';
 
 const router = Router();
 
@@ -22,6 +22,13 @@ router.get('/:fileId', (req, res) => {
   data.costs = costs;
   for (let i = 0; i < data.messages.length; i++) {
     data.messages[i].cost = costs.messageCosts[i] || null;
+    // Include sidechain message costs
+    for (const sc of data.messages[i].sidechainMessages || []) {
+      sc.cost = calcMessageCost(sc.tokenUsage, sc.model, config.modelPrices);
+      if (sc.cost && sc.cost.currency) {
+        costs.totalByCurrency[sc.cost.currency] = (costs.totalByCurrency[sc.cost.currency] || 0) + sc.cost.total;
+      }
+    }
   }
   // Also add to stats for StatsHeader access
   data.stats.totalByCurrency = costs.totalByCurrency;
