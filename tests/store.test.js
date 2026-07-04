@@ -114,12 +114,62 @@ describe('store', () => {
 
     it('handles multiple base directories', () => {
       store.set('/base/a/x.jsonl', { session: { id: 's1', agentType: 'cc', title: 't1', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
-      store.set('/other/b/y.jsonl', { session: { id: 's2', agentType: 'cc', title: 't2', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/base/a/y.jsonl', { session: { id: 's2', agentType: 'cc', title: 't2', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/base/rootfile.jsonl', { session: { id: 's3', agentType: 'cc', title: 't3', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/other/b/z.jsonl', { session: { id: 's4', agentType: 'cc', title: 't4', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/other/b/w.jsonl', { session: { id: 's5', agentType: 'cc', title: 't5', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/other/rootfile.jsonl', { session: { id: 's6', agentType: 'cc', title: 't6', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
 
       const tree = store.buildDirectoryTree(['/base', '/other']);
       expect(tree.children).toHaveLength(2);
-      expect(tree.children[0].name).toBe('a');
-      expect(tree.children[1].name).toBe('b');
+      expect(tree.children[0].name).toBe('/base');
+      expect(tree.children[0].children[0].name).toBe('a');
+      expect(tree.children[1].name).toBe('/other');
+      expect(tree.children[1].children[0].name).toBe('b');
+    });
+
+    it('flattens single-child directory chains under base dir', () => {
+      store.set('/base1/a/b/file.jsonl', { session: { id: 's1', agentType: 'cc', title: 't1', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/base2/x.jsonl', { session: { id: 's2', agentType: 'cc', title: 't2', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      const tree = store.buildDirectoryTree(['/base1', '/base2']);
+      // a/b flattened: file.jsonl directly under /base1
+      const base1 = tree.children.find(c => c.name === '/base1');
+      expect(base1.children).toHaveLength(1);
+      expect(base1.children[0].name).toBe('file.jsonl');
+    });
+
+    it('preserves multi-child directories from flattening', () => {
+      store.set('/base1/a/b/file1.jsonl', { session: { id: 's1', agentType: 'cc', title: 't1', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/base1/a/c/file2.jsonl', { session: { id: 's2', agentType: 'cc', title: 't2', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/base1/extra.jsonl', { session: { id: 's3', agentType: 'cc', title: 't3', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/base2/x.jsonl', { session: { id: 's4', agentType: 'cc', title: 't4', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      const tree = store.buildDirectoryTree(['/base1', '/base2']);
+      const base1 = tree.children.find(c => c.name === '/base1');
+      const aNode = base1.children.find(c => c.name === 'a');
+      expect(aNode).toBeDefined();
+      expect(aNode.children).toHaveLength(2);
+    });
+
+    it('uses full base directory path as root node name', () => {
+      store.set('/home/user/.claude/projects/test/session.jsonl', { session: { id: 's1', agentType: 'cc', title: 't1', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      store.set('/other/x.jsonl', { session: { id: 's2', agentType: 'cc', title: 't2', startTime: '', endTime: '', messageCount: 0, totalTokens: 0, model: '', cwd: '', gitBranch: '', filePath: '' } });
+      const tree = store.buildDirectoryTree(['/home/user/.claude/projects', '/other']);
+      expect(tree.children[0].name).toBe('/home/user/.claude/projects');
+      expect(tree.children[0].type).toBe('directory');
+    });
+  });
+
+  describe('sidechain groups', () => {
+    it('adds and retrieves sidechain groups', () => {
+      const messages = [{ id: 'm1' }, { id: 'm2' }];
+      store.addSidechainGroup('session-1', messages);
+      const groups = store.getSidechainGroups('session-1');
+      expect(groups).toHaveLength(1);
+      expect(groups[0]).toBe(messages);
+    });
+
+    it('returns empty array for unknown session', () => {
+      expect(store.getSidechainGroups('nonexistent')).toEqual([]);
     });
   });
 });

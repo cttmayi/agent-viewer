@@ -72,13 +72,12 @@ export function parse(rawText) {
         toolCalls: undefined
       };
 
+      messages.push(msg);
       if (mappedRole === 'user') userCount++;
       if (mappedRole === 'assistant') {
         assistantCount++;
-        lastAssistantIdx = messages.length;
+        lastAssistantIdx = messages.length - 1;
       }
-
-      messages.push(msg);
     } else if (payload.type === 'function_call') {
       // Associate with the preceding assistant message
       if (lastAssistantIdx >= 0) {

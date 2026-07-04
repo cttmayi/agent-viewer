@@ -235,6 +235,32 @@ describe('claude-code parser', () => {
       expect(result.session.title).toBe('my title text');
     });
 
+    it('sets title from last user before first assistant', () => {
+      const u1 = userMsg({ uuid: 'u1', content: [{ type: 'text', text: 'ignored' }], timestamp: '2026-01-01T00:00:00.000Z' });
+      const u2 = userMsg({ uuid: 'u2', parentUuid: 'u1', content: [{ type: 'text', text: 'real question' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const a = assistantMsg({ uuid: 'a1', parentUuid: 'u2', content: [{ type: 'text', text: 'answer' }], timestamp: '2026-01-01T00:00:02.000Z' });
+      const raw = buildJSONL(u1, u2, a);
+      const result = parser.parse(raw);
+      expect(result.session.title).toBe('real question');
+    });
+
+    it('skips user messages starting with < for title', () => {
+      const u1 = userMsg({ uuid: 'u1', content: [{ type: 'text', text: '<environment_context>' }], timestamp: '2026-01-01T00:00:00.000Z' });
+      const u2 = userMsg({ uuid: 'u2', parentUuid: 'u1', content: [{ type: 'text', text: 'actual question' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const a = assistantMsg({ uuid: 'a1', parentUuid: 'u2', content: [{ type: 'text', text: 'answer' }], timestamp: '2026-01-01T00:00:02.000Z' });
+      const raw = buildJSONL(u1, u2, a);
+      const result = parser.parse(raw);
+      expect(result.session.title).toBe('actual question');
+    });
+
+    it('falls back to assistant text when all user messages start with <', () => {
+      const u = userMsg({ uuid: 'u1', content: [{ type: 'text', text: '<system> message' }], timestamp: '2026-01-01T00:00:00.000Z' });
+      const a = assistantMsg({ uuid: 'a1', parentUuid: 'u1', content: [{ type: 'text', text: 'useful response' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const raw = buildJSONL(u, a);
+      const result = parser.parse(raw);
+      expect(result.session.title).toBe('useful response');
+    });
+
     it('calculates totalTurns correctly', () => {
       const u1 = userMsg({ uuid: 'u1' });
       const a1 = assistantMsg({ uuid: 'a1', parentUuid: 'u1' });

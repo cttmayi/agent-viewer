@@ -29,7 +29,7 @@ function makeStore() {
     clear: vi.fn(() => map.clear()),
     getAll: vi.fn(() => Array.from(map.values()).map(e => e.session)),
     buildDirectoryTree: vi.fn(() => ({ name: 'root' })),
-    addSidechain: vi.fn((sessionId, messages) => {
+    addSidechainGroup: vi.fn((sessionId, messages) => {
       if (!sidechainMap.has(sessionId)) sidechainMap.set(sessionId, []);
       sidechainMap.get(sessionId).push(...messages);
     }),
@@ -175,7 +175,7 @@ describe('watcher', () => {
       expect(store.set).not.toHaveBeenCalled();
     });
 
-    it('stores sidechain files via addSidechain instead of main store', async () => {
+    it('stores sidechain files via addSidechainGroup instead of main store', async () => {
       const sidechainContent = '{"sessionId":"parent-uuid","isSidechain":true}\n{"type":"user","uuid":"u1","content":"hi"}';
       fs.readFile = vi.fn().mockResolvedValue(sidechainContent);
 
@@ -184,7 +184,7 @@ describe('watcher', () => {
       await watcher.processFile('/base/session-uuid/subagents/agent-xxx.jsonl');
 
       expect(fs.readFile).toHaveBeenCalledTimes(1);
-      expect(store.addSidechain).toHaveBeenCalledWith('parent-uuid', expect.any(Array));
+      expect(store.addSidechainGroup).toHaveBeenCalledWith('parent-uuid', expect.any(Array));
       expect(store.set).not.toHaveBeenCalled();
     });
 
@@ -206,7 +206,7 @@ describe('watcher', () => {
       await watcher.scanAll();
 
       // scanned /base → recursed into subagents/ → found sidechain file
-      expect(store.addSidechain).toHaveBeenCalledWith('parent-uuid', expect.any(Array));
+      expect(store.addSidechainGroup).toHaveBeenCalledWith('parent-uuid', expect.any(Array));
       expect(store.set).not.toHaveBeenCalled();
     });
   });

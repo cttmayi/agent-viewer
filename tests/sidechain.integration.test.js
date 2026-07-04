@@ -20,7 +20,7 @@ function makeStore() {
     clear: vi.fn(() => map.clear()),
     getAll: vi.fn(() => []),
     buildDirectoryTree: vi.fn(() => ({ name: 'root' })),
-    addSidechain: vi.fn((sessionId, messages) => {
+    addSidechainGroup: vi.fn((sessionId, messages) => {
       if (!sidechainMap.has(sessionId)) sidechainMap.set(sessionId, []);
       sidechainMap.get(sessionId).push(...messages);
     }),
@@ -60,17 +60,18 @@ describe('sidechain integration', () => {
     const watcher = initWatcher({ directories: ['/test'] }, store, makeWss());
     await watcher.processFile('/test/subagents/agent-coder.jsonl');
 
-    // should be stored via addSidechain, not store.set
+    // should be stored via addSidechainGroup, not store.set
     expect(store.set).not.toHaveBeenCalled();
-    expect(store.addSidechain).toHaveBeenCalledWith('parent-session-123', expect.any(Array));
+    expect(store.addSidechainGroup).toHaveBeenCalledWith('parent-session-123', expect.any(Array));
 
-    // verify flattened messages: only user and assistant, no attachment
+    // flattened messages: user + attachment (mapped to user) + assistant
     const stored = store.getSidechainsForSession('parent-session-123');
-    expect(stored.length).toBe(2);
+    expect(stored.length).toBe(3);
     expect(stored[0].role).toBe('user');
     expect(stored[0].content[0].text).toBe('analyze this design');
-    expect(stored[1].role).toBe('assistant');
-    expect(stored[1].content[0].text).toBe('Analysis complete');
+    expect(stored[1].role).toBe('user'); // attachment mapped to user
+    expect(stored[2].role).toBe('assistant');
+    expect(stored[2].content[0].text).toBe('Analysis complete');
   });
 
   it('shows subagent block when viewport is open', async () => {

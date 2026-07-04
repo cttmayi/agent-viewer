@@ -141,12 +141,69 @@ describe('codex parser', () => {
       expect(result.session.title).toContain('my question');
     });
 
+    it('skips user messages starting with < for title', () => {
+      const meta = metaRecord();
+      const u1 = responseItem({ role: 'user', content: [{ type: 'input_text', text: '<env> context' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const u2 = responseItem({ role: 'user', content: [{ type: 'input_text', text: 'real question' }], timestamp: '2026-01-01T00:00:02.000Z' });
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'answer' }], timestamp: '2026-01-01T00:00:03.000Z' });
+      const raw = buildJSONL(meta, u1, u2, a);
+      const result = parser.parse(raw);
+      expect(result.session.title).toBe('real question');
+    });
+
     it('falls back to sessionId for title when no user message', () => {
       const meta = metaRecord();
       const raw = JSON.stringify(meta);
 
       const result = parser.parse(raw);
       expect(result.session.title).toBe('codex-sid-1');
+    });
+
+    it('parses function_call into toolCalls on preceding assistant', () => {
+      const meta = metaRecord();
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const fc = {
+        type: 'response_item',
+        timestamp: '2026-01-01T00:00:02.000Z',
+        payload: { type: 'function_call', name: 'exec_command', call_id: 'call-1', arguments: '{"cmd": "ls -la"}' }
+      };
+      const raw = buildJSONL(meta, a, fc);
+      const result = parser.parse(raw);
+      expect(result.messages).toHaveLength(1);
+      expect(result.messages[0].toolCalls).toHaveLength(1);
+      expect(result.messages[0].toolCalls[0].name).toBe('exec_command');
+      expect(result.messages[0].toolCalls[0].input).toEqual({ cmd: 'ls -la' });
+    });
+
+    it('maps function_call_output to tool call result via call_id', () => {
+      const meta = metaRecord();
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const output = {
+        type: 'response_item',
+        timestamp: '2026-01-01T00:00:01.500Z',
+        payload: { type: 'function_call_output', call_id: 'call-1', output: 'file1.txt\nfile2.txt' }
+      };
+      const fc = {
+        type: 'response_item',
+        timestamp: '2026-01-01T00:00:02.000Z',
+        payload: { type: 'function_call', name: 'exec_command', call_id: 'call-1', arguments: '{}' }
+      };
+      const raw = buildJSONL(meta, a, output, fc);
+      const result = parser.parse(raw);
+      expect(result.messages[0].toolCalls[0].result).toBe('file1.txt\nfile2.txt');
+    });
+
+    it('counts function_calls in tool stats', () => {
+      const meta = metaRecord();
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const fc1 = { type: 'response_item', timestamp: '2026-01-01T00:00:02.000Z', payload: { type: 'function_call', name: 'exec_command', call_id: 'c1', arguments: '{}' } };
+      const fc2 = { type: 'response_item', timestamp: '2026-01-01T00:00:03.000Z', payload: { type: 'function_call', name: 'write_stdin', call_id: 'c2', arguments: '{}' } };
+      const raw = buildJSONL(meta, a, fc1, fc2);
+      const result = parser.parse(raw);
+      expect(result.messages[0].toolCalls).toHaveLength(2);
+      expect(result.stats.toolCallCount).toBe(2);
+      expect(result.stats.topUsedTools).toContainEqual({ name: 'exec_command', count: 1 });
+      expect(result.stats.topUsedTools).toContainEqual({ name: 'write_stdin', count: 1 });
     });
 
     it('populates session metadata from meta record', () => {

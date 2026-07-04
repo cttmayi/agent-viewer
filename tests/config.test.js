@@ -6,6 +6,7 @@ vi.mock('fs/promises', () => {
     readFile: vi.fn(),
     writeFile: vi.fn().mockResolvedValue(),
     copyFile: vi.fn().mockResolvedValue(),
+    mkdir: vi.fn().mockResolvedValue(),
   };
   return { default: mockFs, ...mockFs };
 });
