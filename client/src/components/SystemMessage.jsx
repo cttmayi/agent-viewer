@@ -8,13 +8,13 @@ export default function SystemMessage({ message }) {
 
   return (
     <div style={{
-      marginBottom: '12px', textAlign: 'center'
+      marginBottom: '12px', display: 'flex', justifyContent: 'center'
     }}>
       <div style={{
-        display: 'inline-block', background: 'var(--system-msg-bg)',
+        background: 'var(--system-msg-bg)',
         borderRadius: '4px', padding: '4px 12px',
         fontSize: '12px', color: 'var(--text-secondary)',
-        maxWidth: '90%', whiteSpace: 'pre-wrap'
+        whiteSpace: 'pre-wrap', wordBreak: 'break-word'
       }}>
         {text}
       </div>

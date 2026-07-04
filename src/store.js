@@ -57,35 +57,50 @@ function has(filePath) {
 function buildDirectoryTree(baseDirs) {
   const root = { name: 'root', type: 'directory', children: [] };
 
+  // Group sessions by which base directory they belong to
+  const grouped = {}; // baseDir → { node, sessions }
+  for (const base of baseDirs) {
+    grouped[base] = { node: { name: base, type: 'directory', children: [] }, sessions: [] };
+  }
+
   for (const [filePath, entry] of sessions.entries()) {
-    let relPath = filePath;
     for (const base of baseDirs) {
       if (filePath.startsWith(base)) {
-        relPath = filePath.slice(base.length).replace(/^\//, '');
+        grouped[base].sessions.push({ filePath, entry });
         break;
       }
     }
+  }
 
-    const parts = relPath.split('/');
-    const fileName = parts.pop();
+  // Build tree for each base dir
+  for (const [base, group] of Object.entries(grouped)) {
+    const baseNode = group.node;
+    for (const { filePath, entry } of group.sessions) {
+      const relPath = filePath.slice(base.length).replace(/^\//, '');
+      const parts = relPath.split('/');
+      const fileName = parts.pop();
 
-    let current = root;
-    for (const part of parts) {
-      if (!current.children) current.children = [];
-      let child = current.children.find(c => c.name === part && c.type === 'directory');
-      if (!child) {
-        child = { name: part, type: 'directory', children: [] };
-        current.children.push(child);
+      let current = baseNode;
+      for (const part of parts) {
+        if (!current.children) current.children = [];
+        let child = current.children.find(c => c.name === part && c.type === 'directory');
+        if (!child) {
+          child = { name: part, type: 'directory', children: [] };
+          current.children.push(child);
+        }
+        current = child;
       }
-      current = child;
-    }
 
-    if (!current.children) current.children = [];
-    current.children.push({
-      name: fileName,
-      type: 'file',
-      session: entry.session
-    });
+      if (!current.children) current.children = [];
+      current.children.push({
+        name: fileName,
+        type: 'file',
+        session: entry.session
+      });
+    }
+    if (baseNode.children?.length) {
+      root.children.push(baseNode);
+    }
   }
 
   function sortTree(node) {
@@ -100,10 +115,9 @@ function buildDirectoryTree(baseDirs) {
   }
   sortTree(root);
 
-  // flatten single-child directory chains (e.g. "my-project/2025-06-15T10-30-00_abc123" → "my-project")
+  // flatten single-child directory chains
   function flattenSingleChildDirs(node) {
     if (!node.children) return;
-    // if the only child is a directory, promote its children
     while (node.children.length === 1 && node.children[0].type === 'directory') {
       const child = node.children[0];
       node.children = child.children || [];

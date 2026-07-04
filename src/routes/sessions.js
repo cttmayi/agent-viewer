@@ -14,6 +14,8 @@ router.get('/:fileId', (req, res) => {
   const data = store.get(filePath);
   if (!data) return res.status(404).json({ error: '会话未找到' });
 
+  data.session.filePath = filePath;
+
   // Link subagent groups to Agent tool_uses by timestamp ordering
   if (data.session && data.session.id && data.messages) {
     const groups = store.getSidechainGroups(data.session.id);

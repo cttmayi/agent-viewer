@@ -37,6 +37,7 @@ export default function ToolCallBlock({ toolCalls }) {
   }
 
   const hasResult = toolCalls.some(tc => tc.result);
+  const hasSubagent = toolCalls.some(tc => tc.name === 'Agent' && tc.subagent);
 
   return (
     <div style={{ margin: '8px 0' }}>
@@ -47,10 +48,21 @@ export default function ToolCallBlock({ toolCalls }) {
         onKeyDown={handleKeyDown}
         aria-expanded={expanded}
         aria-controls="tool-calls-content"
-        style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', userSelect: 'none' }}
+        style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
-        {expanded ? '▼' : '▶'} 工具调用: {Object.entries(toolSummary).map(([k, v]) => `${k}(${v})`).join(', ')}
-        {hasResult && !expanded && ' ✓'}
+        <span>{expanded ? '▼' : '▶'} 工具调用: {Object.entries(toolSummary).map(([k, v]) => `${k}(${v})`).join(', ')}
+        {hasResult && !expanded && ' ✓'}</span>
+        {hasSubagent && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); selectSubagent(toolCalls.find(tc => tc.name === 'Agent' && tc.subagent)?.subagent); }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSubagent(toolCalls.find(tc => tc.name === 'Agent' && tc.subagent)?.subagent); } }}
+            style={{ cursor: 'pointer', fontSize: '11px', color: 'var(--accent-color)', whiteSpace: 'nowrap' }}
+          >
+            查看子 agent 过程 →
+          </span>
+        )}
       </div>
       <div id="tool-calls-content">
         {expanded && toolCalls.map((tc, i) => (

@@ -25,6 +25,11 @@ export default function StatsHeader({ session, stats }) {
         <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
           {session.agentType} · {session.model || '未知模型'}
         </span>
+        {session.filePath && (
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginTop: '2px', wordBreak: 'break-all' }}>
+            {session.filePath}
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
         <span>消息: {session.messageCount}</span>

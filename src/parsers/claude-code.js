@@ -114,20 +114,59 @@ export function parse(rawText) {
 
   const stats = computeStats(flatMessages, allRecords, systemMessages);
 
-  const firstUser = userMessages[0];
+  const rawFirstUser = userMessages[0];
   const lastAssistant = assistantMessages[assistantMessages.length - 1];
-  const aiModel = assistantMessages.find(m => m.message?.model)?.message?.model || firstUser?.version || '';
+  const aiModel = assistantMessages.find(m => m.message?.model)?.message?.model || rawFirstUser?.version || '';
+
+  // Extract text from a message's content (handles both array and string)
+  function getMsgText(msg) {
+    const c = msg.content;
+    if (typeof c === 'string') return c;
+    if (Array.isArray(c)) return c.map(x => x.text).filter(Boolean).join('');
+    return '';
+  }
+
+  // Title: find first assistant message, then take the last user message BEFORE it
+  let title = sessionId;
+  const firstAsstIdx = flatMessages.findIndex(m => m.role === 'assistant');
+  if (firstAsstIdx >= 0) {
+    for (let i = firstAsstIdx - 1; i >= 0; i--) {
+      const text = getMsgText(flatMessages[i]);
+      if (text && !text.startsWith('<')) {
+        title = text.slice(0, 60);
+        break;
+      }
+    }
+  }
+  // fallback: no valid user before first assistant → walk backwards from end
+  if (title === sessionId) {
+    for (let i = flatMessages.length - 1; i >= 0; i--) {
+      if (flatMessages[i].role === 'assistant' || (flatMessages[i].toolCalls && flatMessages[i].toolCalls.length > 0)) continue;
+      const text = getMsgText(flatMessages[i]);
+      if (text && !text.startsWith('<')) { title = text.slice(0, 60); break; }
+    }
+  }
+  // final fallback: last assistant text
+  if (title === sessionId) {
+    for (let i = flatMessages.length - 1; i >= 0; i--) {
+      if (flatMessages[i].role === 'assistant') {
+        const text = getMsgText(flatMessages[i]);
+        if (text) { title = text.slice(0, 60); break; }
+      }
+    }
+  }
+
   const session = {
     id: sessionId,
     agentType: 'claude-code',
-    title: firstUser ? extractTitle(firstUser) : sessionId,
-    startTime: firstUser?.timestamp || '',
+    title,
+    startTime: rawFirstUser?.timestamp || '',
     endTime: lastAssistant?.timestamp || '',
     messageCount: flatMessages.length,
     totalTokens: stats.totalOutputTokens + stats.totalInputTokens,
     model: aiModel,
-    cwd: firstUser?.cwd || '',
-    gitBranch: firstUser?.gitBranch || '',
+    cwd: rawFirstUser?.cwd || '',
+    gitBranch: rawFirstUser?.gitBranch || '',
     filePath: ''
   };
 

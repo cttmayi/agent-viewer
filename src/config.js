@@ -4,7 +4,8 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = path.join(__dirname, '../agent-viewer.config.json');
+const CONFIG_DIR = path.join(os.homedir(), '.agent-view');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 
 const DEFAULT_CONFIG = {
   directories: [
@@ -30,12 +31,14 @@ export async function initConfig() {
     };
   } catch (err) {
     if (err.code === 'ENOENT') {
+      await fs.mkdir(CONFIG_DIR, { recursive: true });
       await fs.writeFile(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
       return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories] };
     }
     // JSON parse error — back up corrupted file and reset
     const backupPath = CONFIG_PATH + '.bak';
     await fs.copyFile(CONFIG_PATH, backupPath).catch(() => {});
+    await fs.mkdir(CONFIG_DIR, { recursive: true });
     await fs.writeFile(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
     console.warn(`配置解析失败，已备份到 ${backupPath}，使用默认配置`);
     return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories] };
