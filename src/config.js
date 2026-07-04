@@ -27,13 +27,14 @@ export async function initConfig() {
     const user = JSON.parse(raw);
     return {
       directories: user.directories || DEFAULT_CONFIG.directories,
-      settings: { ...DEFAULT_CONFIG.settings, ...user.settings }
+      settings: { ...DEFAULT_CONFIG.settings, ...user.settings },
+      modelPrices: user.modelPrices || {}
     };
   } catch (err) {
     if (err.code === 'ENOENT') {
       await fs.mkdir(CONFIG_DIR, { recursive: true });
       await fs.writeFile(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
-      return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories] };
+      return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories], modelPrices: {} };
     }
     // JSON parse error — back up corrupted file and reset
     const backupPath = CONFIG_PATH + '.bak';
@@ -41,7 +42,7 @@ export async function initConfig() {
     await fs.mkdir(CONFIG_DIR, { recursive: true });
     await fs.writeFile(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
     console.warn(`配置解析失败，已备份到 ${backupPath}，使用默认配置`);
-    return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories] };
+    return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories], modelPrices: {} };
   }
 }
 
@@ -50,7 +51,7 @@ export async function getConfig() {
     const raw = await fs.readFile(CONFIG_PATH, 'utf-8');
     return JSON.parse(raw);
   } catch {
-    return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories] };
+    return { ...DEFAULT_CONFIG, directories: [...DEFAULT_CONFIG.directories], modelPrices: {} };
   }
 }
 
@@ -58,7 +59,8 @@ export async function updateConfig(partial) {
   const current = await getConfig();
   const merged = {
     directories: partial.directories ?? current.directories,
-    settings: { ...current.settings, ...partial.settings }
+    settings: { ...current.settings, ...partial.settings },
+    modelPrices: partial.modelPrices !== undefined ? partial.modelPrices : (current.modelPrices || {})
   };
   await fs.writeFile(CONFIG_PATH, JSON.stringify(merged, null, 2));
   return merged;
