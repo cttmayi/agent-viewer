@@ -1,12 +1,15 @@
 {
   "name": "agent-viewer",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
+  "bin": {
+    "agent-viewer": "./src/index.js"
+  },
   "scripts": {
     "dev": "node src/index.js",
     "dev:client": "cd client && npx vite",
     "build": "cd client && npx vite build",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
