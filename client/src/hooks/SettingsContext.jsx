@@ -4,8 +4,11 @@ import useSettings from './useSettings.js';
 const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
-  const { settings, loading, update } = useSettings();
-  const value = useMemo(() => ({ settings, loading, update }), [settings, loading, update]);
+  const { settings, modelPrices, loading, update, updateModelPrices } = useSettings();
+  const value = useMemo(
+    () => ({ settings, modelPrices, loading, update, updateModelPrices }),
+    [settings, modelPrices, loading, update, updateModelPrices]
+  );
   return (
     <SettingsContext.Provider value={value}>
       {children}

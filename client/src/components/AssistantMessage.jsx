@@ -3,6 +3,22 @@ import ThinkingBlock from './ThinkingBlock.jsx';
 import ToolCallBlock from './ToolCallBlock.jsx';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
 
+function formatTokenBreakdown(msg) {
+  const parts = [];
+  if (msg.tokenUsage?.input) parts.push(`↑${msg.tokenUsage.input}`);
+  if (msg.tokenUsage?.output) parts.push(`↓${msg.tokenUsage.output}`);
+  if (msg.tokenUsage?.cacheRead) parts.push(`⊙${msg.tokenUsage.cacheRead}`);
+  if (msg.tokenUsage?.cacheCreate) parts.push(`◎${msg.tokenUsage.cacheCreate}`);
+  return parts.join(' ');
+}
+
+function formatMsgCost(cost) {
+  if (!cost || cost.total <= 0) return '';
+  const symbol = cost.currency === 'CNY' ? '¥' : '$';
+  if (cost.total < 0.0001) return '<' + symbol + '0.0001';
+  return symbol + cost.total.toFixed(4);
+}
+
 export default function AssistantMessage({ message }) {
   const { settings } = useSettingsContext();
   const maxLines = settings?.messageMaxLines || 0;
@@ -19,8 +35,9 @@ export default function AssistantMessage({ message }) {
     return typeof t === 'string' ? t : JSON.stringify(t);
   }).join('\n');
   const time = message.timestamp ? new Date(message.timestamp).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
-  const tokens = message.tokenUsage?.output ? `${message.tokenUsage.output} tokens` : '';
   const duration = message.duration ? `${(message.duration / 1000).toFixed(1)}s` : '';
+  const tokenBreakdown = formatTokenBreakdown(message);
+  const msgCost = formatMsgCost(message.cost);
 
   useLayoutEffect(() => {
     const el = textRef.current;
@@ -48,7 +65,7 @@ export default function AssistantMessage({ message }) {
         position: 'relative'
       }}>
         <div style={{ fontSize: '11px', color: 'var(--accent-color)', marginBottom: '6px', fontWeight: 500 }}>
-          AI{message.model ? ` · ${message.model}` : ''} · {[time, duration, tokens].filter(Boolean).join(' · ')}
+          AI{message.model ? ` · ${message.model}` : ''} · {[time, duration, tokenBreakdown, msgCost].filter(Boolean).join(' · ')}
         </div>
         <ThinkingBlock thinking={thinkingText} />
         {text && <div ref={textRef} style={textClamp}>{text}</div>}

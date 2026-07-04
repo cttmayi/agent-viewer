@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
 
 const LABELS = {
@@ -40,7 +40,28 @@ const OPTIONS = {
 };
 
 export default function SettingsPanel({ onClose }) {
-  const { settings, loading, update } = useSettingsContext();
+  const { settings, modelPrices, loading, update, updateModelPrices } = useSettingsContext();
+  const [pricesText, setPricesText] = useState('');
+  const [parseError, setParseError] = useState('');
+  const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    if (modelPrices) {
+      setPricesText(JSON.stringify(modelPrices, null, 2));
+    }
+  }, [modelPrices]);
+
+  const handleSavePrices = () => {
+    try {
+      const parsed = JSON.parse(pricesText);
+      if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('需要 JSON 对象');
+      setParseError('');
+      setSaveStatus('保存中...');
+      updateModelPrices(parsed).then(() => setSaveStatus('已保存')).catch(() => setSaveStatus('保存失败'));
+    } catch (e) {
+      setParseError('JSON 格式错误: ' + e.message);
+    }
+  };
 
   if (loading || !settings) {
     return (
@@ -106,6 +127,34 @@ export default function SettingsPanel({ onClose }) {
           <button onClick={onClose} style={{ fontSize: '18px' }}>✕</button>
         </div>
         {Object.keys(LABELS).map(renderField)}
+        {/* ---- Model Prices Editor ---- */}
+        <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+          <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', color: 'var(--text-secondary)' }}>
+            模型价格 (每百万 Token)
+          </label>
+          <textarea
+            value={pricesText}
+            onChange={e => setPricesText(e.target.value)}
+            style={{
+              width: '100%', minHeight: '150px', padding: '8px',
+              fontSize: '12px', fontFamily: 'var(--font-mono)',
+              background: 'var(--bg-tertiary)', color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)', borderRadius: '4px',
+              outline: 'none', resize: 'vertical'
+            }}
+          />
+          <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center' }}>
+            <button onClick={handleSavePrices} style={{
+              padding: '4px 12px', borderRadius: '4px', fontSize: '13px',
+              background: 'var(--accent-color)', color: '#fff', border: 'none',
+              cursor: 'pointer'
+            }}>
+              保存价格
+            </button>
+            {saveStatus && <span style={{ color: 'var(--text-success)', fontSize: '12px' }}>{saveStatus}</span>}
+          </div>
+          {parseError && <div style={{ color: '#e74c3c', fontSize: '12px', marginTop: '4px' }}>{parseError}</div>}
+        </div>
       </div>
     </div>
   );

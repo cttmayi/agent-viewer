@@ -13,6 +13,18 @@ function fmtTokens(n) {
   return String(n);
 }
 
+function formatCosts(totalByCurrency) {
+  if (!totalByCurrency) return '';
+  const parts = Object.entries(totalByCurrency)
+    .filter(([, v]) => v > 0)
+    .map(([currency, total]) => {
+      const symbol = currency === 'CNY' ? '¥' : '$';
+      const display = total < 0.0001 ? '<' + symbol + '0.0001' : symbol + total.toFixed(4);
+      return display;
+    });
+  return parts.length > 0 ? parts.join(' + ') : '';
+}
+
 export default function StatsHeader({ session, stats }) {
   if (!session || !stats) return null;
   return (
@@ -41,6 +53,9 @@ export default function StatsHeader({ session, stats }) {
         <span>工具调用: {stats.toolCallCount}次</span>
         {stats.topUsedTools?.length > 0 && (
           <span>常用工具: {stats.topUsedTools.slice(0, 5).map(t => t.name).join(', ')}</span>
+        )}
+        {stats.totalByCurrency && Object.keys(stats.totalByCurrency).length > 0 && (
+          <span>费用: {formatCosts(stats.totalByCurrency)}</span>
         )}
       </div>
     </div>
