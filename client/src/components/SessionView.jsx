@@ -62,6 +62,20 @@ export default function SessionView({ session, onBack }) {
   const liveData = useMemo(() => {
     if (!data) return null;
     const costs = calcSessionCost(data.messages || [], modelPrices);
+    // Include sidechain/subagent message costs
+    for (let i = 0; i < (data.messages || []).length; i++) {
+      let scTotal = 0;
+      for (const sc of data.messages[i].sidechainMessages || []) {
+        const scCost = calcMessageCost(sc.tokenUsage, sc.model, modelPrices);
+        sc.cost = scCost;
+        if (scCost && scCost.currency) {
+          costs.totalByCurrency[scCost.currency] = (costs.totalByCurrency[scCost.currency] || 0) + scCost.total;
+          scTotal += scCost.total;
+        }
+      }
+      const msgCost = costs.messageCosts[i] || null;
+      if (scTotal > 0 && msgCost) msgCost.total += scTotal;
+    }
     return {
       ...data,
       costs,
