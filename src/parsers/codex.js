@@ -44,26 +44,17 @@ export function parse(rawText) {
     }
   }
 
-  // Collect token_count events and turn_context records (for model)
-  const tokenCounts = allRecords
-    .filter(r => r.type === 'event_msg' && r.payload?.type === 'token_count')
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-  const turnContexts = allRecords
-    .filter(r => r.type === 'turn_context')
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
   // Collect function_calls by the assistant message index they belong to
   const messages = [];
   let userCount = 0, assistantCount = 0, msgCounter = 0;
   let lastAssistantIdx = -1;
   let assistantModel = modelProvider;
-  let ctxIdx = 0, tokenIdx = 0;
 
   // Process all record types chronologically to track model and token usage per turn
   const allSorted = [...allRecords].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  // Store token usage per assistant message index
+  // Store per-assistant-message data collected from event records
   const tokenUsageForAssistant = [];
+  const durationForAssistant = [];
   // Build message list first (existing logic)
   for (const item of responseItems) {
     const payload = item.payload;
@@ -86,6 +77,7 @@ export function parse(rawText) {
         sidechainMessages: undefined,
         tokenUsage: undefined,
         model: '',
+        duration: undefined,
         toolCalls: undefined
       };
 
@@ -110,8 +102,8 @@ export function parse(rawText) {
     }
   }
 
-  // Second pass: chronological order to match model and token counts to assistant messages
-  let asstIdx = 0;
+  // Second pass: chronological order to match model, token counts and duration to assistant messages
+  let asstIdx = 0, completeIdx = 0;
   for (const rec of allSorted) {
     if (rec.type === 'turn_context' && rec.payload?.model) {
       assistantModel = rec.payload.model;
@@ -126,15 +118,23 @@ export function parse(rawText) {
         };
         asstIdx++;
       }
+    } else if (rec.type === 'event_msg' && rec.payload?.type === 'task_complete') {
+      if (completeIdx < assistantCount) {
+        durationForAssistant[completeIdx] = rec.payload.duration_ms || 0;
+        completeIdx++;
+      }
     }
   }
 
-  // Apply token usage and model to assistant messages
+  // Apply token usage, duration and model to assistant messages
   asstIdx = 0;
   for (let i = 0; i < messages.length; i++) {
     if (messages[i].role === 'assistant') {
       if (tokenUsageForAssistant[asstIdx]) {
         messages[i].tokenUsage = tokenUsageForAssistant[asstIdx];
+      }
+      if (durationForAssistant[asstIdx]) {
+        messages[i].duration = durationForAssistant[asstIdx];
       }
       if (!messages[i].model) {
         messages[i].model = assistantModel;
@@ -147,7 +147,7 @@ export function parse(rawText) {
     messages[i].parentId = messages[i - 1].id;
   }
 
-  let totalInput = 0, totalOutput = 0, totalCacheCreate = 0, totalCacheRead = 0;
+  let totalInput = 0, totalOutput = 0, totalCacheCreate = 0, totalCacheRead = 0, totalDuration = 0;
   const modelUsage = {};
   for (const msg of messages) {
     if (msg.tokenUsage) {
@@ -155,6 +155,9 @@ export function parse(rawText) {
       totalOutput += msg.tokenUsage.output || 0;
       totalCacheCreate += msg.tokenUsage.cacheCreate || 0;
       totalCacheRead += msg.tokenUsage.cacheRead || 0;
+    }
+    if (msg.duration) {
+      totalDuration += msg.duration;
     }
     if (msg.model) {
       modelUsage[msg.model] = (modelUsage[msg.model] || 0) + 1;
@@ -170,7 +173,7 @@ export function parse(rawText) {
     totalOutputTokens: totalOutput,
     totalCacheCreateTokens: totalCacheCreate,
     totalCacheReadTokens: totalCacheRead,
-    totalDuration: 0,
+    totalDuration,
     modelUsage: Object.keys(modelUsage).length > 0 ? modelUsage : (modelProvider ? { [modelProvider]: assistantCount } : {}),
     toolCallCount,
     topUsedTools

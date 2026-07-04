@@ -58,6 +58,20 @@ function turnContext(timestamp, model) {
   };
 }
 
+function taskCompleteEvent(timestamp, durationMs) {
+  return {
+    type: 'event_msg',
+    timestamp,
+    payload: {
+      type: 'task_complete',
+      turn_id: 'turn-1',
+      completed_at: new Date(timestamp).getTime(),
+      duration_ms: durationMs || 1000,
+      time_to_first_token_ms: 200
+    }
+  };
+}
+
 function buildJSONL(...records) {
   return records.map(r => JSON.stringify(r)).join('\n');
 }
@@ -321,6 +335,35 @@ describe('codex parser', () => {
       const result = parser.parse(raw);
       expect(result.messages[1].tokenUsage).toBeUndefined();
       expect(result.stats.totalInputTokens).toBe(0);
+    });
+
+    it('extracts duration from task_complete events', () => {
+      const meta = metaRecord();
+      const u = responseItem({ role: 'user', timestamp: 't1' });
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'hi' }], timestamp: 't2' });
+      const tc = taskCompleteEvent('t3', 5678);
+      const raw = buildJSONL(meta, u, a, tc);
+
+      const result = parser.parse(raw);
+      expect(result.messages[1].duration).toBe(5678);
+      expect(result.stats.totalDuration).toBe(5678);
+    });
+
+    it('aggregates total duration across multiple turns', () => {
+      const meta = metaRecord();
+      const u1 = responseItem({ role: 'user', timestamp: 't1' });
+      const a1 = responseItem({ role: 'assistant', timestamp: 't2' });
+      const tc1 = taskCompleteEvent('t3', 1000);
+      const tc2 = turnContext('t4');
+      const u2 = responseItem({ role: 'user', timestamp: 't5' });
+      const a2 = responseItem({ role: 'assistant', timestamp: 't6' });
+      const tc3 = taskCompleteEvent('t7', 2000);
+      const raw = buildJSONL(meta, tc2, u1, a1, tc1, u2, a2, tc3);
+
+      const result = parser.parse(raw);
+      expect(result.messages[1].duration).toBe(1000);
+      expect(result.messages[3].duration).toBe(2000);
+      expect(result.stats.totalDuration).toBe(3000);
     });
   });
 });
