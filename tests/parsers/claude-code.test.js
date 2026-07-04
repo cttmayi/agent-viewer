@@ -272,26 +272,5 @@ describe('claude-code parser', () => {
       expect(result.stats.totalTurns).toBe(2);
     });
 
-    it('works with sample file from docs/format', async () => {
-      const fs = await import('fs/promises');
-      const sample = await fs.readFile('docs/format/claude-code.jsonl', 'utf-8');
-      const result = parser.parse(sample);
-
-      expect(result.session.agentType).toBe('claude-code');
-      expect(result.session.id).toBe('3231452e-823d-4b60-9eb8-9c0adb02e48e');
-      expect(result.messages).toHaveLength(4);
-      expect(result.messages[0].role).toBe('user');
-      expect(result.messages[1].role).toBe('user'); // attachment
-      expect(result.messages[2].role).toBe('assistant');
-      // third assistant is a separate message with same id but different uuid
-      expect(result.messages[3].role).toBe('assistant');
-
-      // Stats
-      expect(result.stats.totalInputTokens).toBeGreaterThan(0);
-      expect(result.stats.totalOutputTokens).toBeGreaterThan(0);
-      expect(result.stats.totalDuration).toBe(37);
-      expect(result.stats.toolCallCount).toBe(0);
-      expect(result.stats.modelUsage).toHaveProperty('deepseek-v4-flash');
-    });
   });
 });

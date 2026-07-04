@@ -156,9 +156,6 @@ agent-viewer/
 │   ├── store.test.js
 │   ├── watcher.test.js
 │   └── websocket.test.js
-└── docs/format/                   # 示例日志文件
-    ├── claude-code.jsonl
-    └── codex.jsonl
 ```
 
 ## API

@@ -259,21 +259,5 @@ describe('codex parser', () => {
       expect(result.stats.totalOutputTokens).toBe(0);
       expect(result.stats.toolCallCount).toBe(0);
     });
-
-    it('works with sample file from docs/format', async () => {
-      const fs = await import('fs/promises');
-      const sample = await fs.readFile('docs/format/codex.jsonl', 'utf-8');
-      const result = parser.parse(sample);
-
-      expect(result.session.agentType).toBe('codex');
-      expect(result.session.id).toBe('019e9384-4c1f-7aa1-bb94-a88d63a2092e');
-      expect(result.messages).toHaveLength(4);
-      // First response_item with developer → system mapping
-      expect(result.messages[0].role).toBe('system');
-      expect(result.messages[1].role).toBe('user');
-      expect(result.messages[2].role).toBe('user');
-      expect(result.messages[3].role).toBe('user'); // aborted turn
-      expect(result.stats.totalTurns).toBe(0); // no complete assistant turn
-    });
   });
 });
