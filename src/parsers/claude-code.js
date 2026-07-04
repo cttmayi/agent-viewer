@@ -112,7 +112,30 @@ export function parse(rawText) {
   }
   flatten(rootMessages);
 
-  const stats = computeStats(flatMessages, allRecords, systemMessages);
+  // 合并连续 assistant（Claude Code 将一次回复拆为 thinking/text/tool_use 多条记录）
+  function mergeConsecutiveAssistants(messages) {
+    const result = [];
+    for (const msg of messages) {
+      const prev = result[result.length - 1];
+      if (prev && prev.role === 'assistant' && msg.role === 'assistant') {
+        prev.content = [...(prev.content || []), ...(msg.content || [])];
+        if (msg.toolCalls) {
+          prev.toolCalls = [...(prev.toolCalls || []), ...msg.toolCalls];
+        }
+        if (msg.tokenUsage) {
+          if (!prev.tokenUsage) prev.tokenUsage = { input: 0, output: 0 };
+          prev.tokenUsage.input += msg.tokenUsage.input || 0;
+          prev.tokenUsage.output += msg.tokenUsage.output || 0;
+        }
+        continue;
+      }
+      result.push(msg);
+    }
+    return result;
+  }
+  const mergedMessages = mergeConsecutiveAssistants(flatMessages);
+
+  const stats = computeStats(mergedMessages, allRecords, systemMessages);
 
   const rawFirstUser = userMessages[0];
   const lastAssistant = assistantMessages[assistantMessages.length - 1];
@@ -128,10 +151,10 @@ export function parse(rawText) {
 
   // Title: find first assistant message, then take the last user message BEFORE it
   let title = sessionId;
-  const firstAsstIdx = flatMessages.findIndex(m => m.role === 'assistant');
+  const firstAsstIdx = mergedMessages.findIndex(m => m.role === 'assistant');
   if (firstAsstIdx >= 0) {
     for (let i = firstAsstIdx - 1; i >= 0; i--) {
-      const text = getMsgText(flatMessages[i]);
+      const text = getMsgText(mergedMessages[i]);
       if (text && !text.startsWith('<')) {
         title = text.slice(0, 60);
         break;
@@ -140,17 +163,17 @@ export function parse(rawText) {
   }
   // fallback: no valid user before first assistant → walk backwards from end
   if (title === sessionId) {
-    for (let i = flatMessages.length - 1; i >= 0; i--) {
-      if (flatMessages[i].role === 'assistant' || (flatMessages[i].toolCalls && flatMessages[i].toolCalls.length > 0)) continue;
-      const text = getMsgText(flatMessages[i]);
+    for (let i = mergedMessages.length - 1; i >= 0; i--) {
+      if (mergedMessages[i].role === 'assistant' || (mergedMessages[i].toolCalls && mergedMessages[i].toolCalls.length > 0)) continue;
+      const text = getMsgText(mergedMessages[i]);
       if (text && !text.startsWith('<')) { title = text.slice(0, 60); break; }
     }
   }
   // final fallback: last assistant text
   if (title === sessionId) {
-    for (let i = flatMessages.length - 1; i >= 0; i--) {
-      if (flatMessages[i].role === 'assistant') {
-        const text = getMsgText(flatMessages[i]);
+    for (let i = mergedMessages.length - 1; i >= 0; i--) {
+      if (mergedMessages[i].role === 'assistant') {
+        const text = getMsgText(mergedMessages[i]);
         if (text) { title = text.slice(0, 60); break; }
       }
     }
@@ -162,7 +185,7 @@ export function parse(rawText) {
     title,
     startTime: rawFirstUser?.timestamp || '',
     endTime: lastAssistant?.timestamp || '',
-    messageCount: flatMessages.length,
+    messageCount: mergedMessages.length,
     totalTokens: stats.totalOutputTokens + stats.totalInputTokens,
     model: aiModel,
     cwd: rawFirstUser?.cwd || '',
@@ -170,7 +193,7 @@ export function parse(rawText) {
     filePath: ''
   };
 
-  return { session, messages: flatMessages, stats };
+  return { session, messages: mergedMessages, stats };
 }
 
 /**
