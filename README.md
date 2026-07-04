@@ -147,6 +147,10 @@ agent-viewer/
 │       ├── sessions.js            # GET /api/sessions/*
 │       ├── config.js              # GET/PUT /api/config
 │       └── upload.js              # POST /api/upload
+├── docs/
+│   └── format/                    # JSONL 格式说明文档
+│       ├── claude-code.md
+│       └── codex.md
 ├── tests/                         # 测试 (vitest)
 │   ├── parsers/
 │   │   ├── claude-code.test.js
@@ -171,10 +175,6 @@ agent-viewer/
 
 ## 数据格式
 
-### Claude Code JSONL
-
-使用 `parentUuid` 字段构建消息树，`isSidechain=true` 标记子代理侧链。
-
-### Codex JSONL
-
-使用 `session_meta` 记录会话元信息，`response_item` 承载消息内容，`developer` 角色自动映射为 `system`。
+详见格式说明文档：
+- [Claude Code JSONL 格式](docs/format/claude-code.md)
+- [Codex JSONL 格式](docs/format/codex.md)
