@@ -6,3 +6,4 @@ dist/
 $TMPDIR/
 .claude/
 agent-viewer.config.json
+docs/superpowers/
