@@ -81,6 +81,35 @@
 }
 ```
 
+## 目录结构
+
+Claude Code 的 JSONL 日志存储在 `~/.claude/projects/` 目录下。
+
+### 子目录命名规则
+
+每个工作目录对应一个子目录，路径中的 `/` 替换为 `-`：
+
+| 工作目录 | 对应子目录 |
+|----------|-----------|
+| `/home/user/project` | `-home-user-project` |
+| `/Volumes/Data/workspace/my-app` | `-Volumes-Data-workspace-my-app` |
+| `/Users/ling/temp/test` | `-Users-ling-temp-test` |
+
+### 每个项目目录的结构
+
+```
+~/.claude/projects/-Users-ling-temp-test/
+├── 3d889f93-8309-4f3d-b0ea-1775a0dfa10c.jsonl   # 会话文件（JSONL）
+├── 3d889f93-8309-4f3d-b0ea-1775a0dfa10c/        # 会话关联数据
+│   ├── subagents/                                # 子代理交互记录
+│   └── tool-results/                             # 工具执行结果
+└── memory/                                       # 持久记忆（Markdown 文件）
+```
+
+- **`<uuid>.jsonl`** — 每个会话一个 JSONL 文件，文件名由会话 UUID 构成
+- **`<uuid>/`** — 与会话同名目录，包含子代理（`subagents/`）和工具结果（`tool-results/`）等扩展数据
+- **`memory/`** — 持久化记忆系统，存储用户偏好、项目上下文等跨会话信息
+
 ### `system` — 系统记录
 
 ```json
