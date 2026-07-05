@@ -146,11 +146,6 @@ export default function SessionView({ session, onBack }) {
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       {/* 主对话 */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-color)' }}>
-          <button type="button" onClick={onBack} style={{ color: 'var(--accent-color)', fontSize: '13px' }}>
-            ← 返回列表
-          </button>
-        </div>
         <StatsHeader session={liveData.session} stats={liveData.stats} />
         <MessageList messages={liveData.messages} />
       </div>
