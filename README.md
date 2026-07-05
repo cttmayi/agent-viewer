@@ -21,23 +21,40 @@
 - **设置面板** — 消息行数截断、Thinking/工具调用/侧链的折叠策略、主题切换
 - **搜索过滤** — 按关键词筛选会话
 
-## 快速开始
+## 安装与运行
+
+提供三种使用方式：
+
+### 1. 一行命令（快速体验，不持久安装）
 
 ```bash
-# 一行命令直接运行（自动安装 + 构建）
 npx github:cttmayi/agent-viewer
 ```
 
-或者 clone 到本地：
+自动下载、安装依赖、构建前端、启动服务。打开 http://localhost:3456。
+
+### 2. 全局安装（安装后可重复使用）
 
 ```bash
 git clone https://github.com/cttmayi/agent-viewer.git
 cd agent-viewer
-npm install    # 自动构建前端
-npm run dev
+npm install
+npm install -g .    # 全局安装
+agent-viewer        # 之后直接运行
 ```
 
-打开 http://localhost:3456。
+代码更新后，进入项目目录重新执行 `npm install -g .` 即可更新全局命令。
+
+### 3. 本地开发（推荐，方便修改）
+
+```bash
+git clone https://github.com/cttmayi/agent-viewer.git
+cd agent-viewer
+npm install         # 自动安装依赖 + 构建前端
+npm run dev         # 启动 http://localhost:3456
+```
+
+修改代码后重启进程即可生效。
 
 ## 开发模式（热更新）
 
