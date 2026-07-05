@@ -25,16 +25,45 @@ const LINK_STYLE = {
   textDecoration: 'underline',
 };
 
+const P_MARGIN = { margin: 0 };
+
 export default function MarkdownContent({ text }) {
   if (!text) return null;
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
+    <div style={{ whiteSpace: 'normal' }}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+        p({ children }) {
+          return <p style={P_MARGIN}>{children}</p>;
+        },
+        ul({ children }) {
+          return <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>{children}</ul>;
+        },
+        ol({ children }) {
+          return <ol style={{ margin: '4px 0', paddingLeft: '20px' }}>{children}</ol>;
+        },
+        li({ children }) {
+          return <li style={{ margin: '3px 0' }}>{children}</li>;
+        },
+        h1({ children }) {
+          return <h1 style={{ margin: '8px 0 4px', fontSize: '16px' }}>{children}</h1>;
+        },
+        h2({ children }) {
+          return <h2 style={{ margin: '6px 0 3px', fontSize: '15px' }}>{children}</h2>;
+        },
+        h3({ children }) {
+          return <h3 style={{ margin: '6px 0 3px', fontSize: '14px' }}>{children}</h3>;
+        },
+        blockquote({ children }) {
+          return <blockquote style={{ margin: '4px 0', paddingLeft: '10px', borderLeft: '3px solid var(--border-color)', color: 'var(--text-secondary)' }}>{children}</blockquote>;
+        },
+        hr() {
+          return <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />;
+        },
         code({ className, children, ...props }) {
-          const match = /language-(\w+)/.exec(className || '');
-          const isInline = !match && !className;
+          const isInline = !/language-\w+/.exec(className || '') && !className;
           if (isInline) {
             return <code style={CODE_STYLE} {...props}>{children}</code>;
           }
@@ -63,5 +92,6 @@ export default function MarkdownContent({ text }) {
     >
       {text}
     </ReactMarkdown>
+    </div>
   );
 }
