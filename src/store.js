@@ -4,6 +4,8 @@
  * 同时维护按目录结构的树形索引
  */
 
+import path from 'path';
+
 const sessions = new Map();
 const sidechains = new Map(); // sessionId → Message[][] (array of groups, one per subagent file)
 
@@ -65,7 +67,7 @@ function buildDirectoryTree(baseDirs) {
 
   for (const [filePath, entry] of sessions.entries()) {
     for (const base of baseDirs) {
-      if (filePath.startsWith(base)) {
+      if (filePath.toLowerCase().startsWith(base.toLowerCase())) {
         grouped[base].sessions.push({ filePath, entry });
         break;
       }
@@ -76,8 +78,8 @@ function buildDirectoryTree(baseDirs) {
   for (const [base, group] of Object.entries(grouped)) {
     const baseNode = group.node;
     for (const { filePath, entry } of group.sessions) {
-      const relPath = filePath.slice(base.length).replace(/^\//, '');
-      const parts = relPath.split('/');
+      const relPath = path.relative(base, filePath);
+      const parts = relPath.split(path.sep);
       const fileName = parts.pop();
 
       let current = baseNode;

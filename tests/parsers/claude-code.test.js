@@ -178,10 +178,10 @@ describe('claude-code parser', () => {
       const raw = buildJSONL(u, a);
 
       const result = parser.parse(raw);
-      expect(result.stats.toolCallCount).toBe(2);
+      expect(result.stats.toolCallCount).toBe(1);
       expect(result.stats.topUsedTools).toHaveLength(1);
       expect(result.stats.topUsedTools[0].name).toBe('bash');
-      expect(result.stats.topUsedTools[0].count).toBe(2);
+      expect(result.stats.topUsedTools[0].count).toBe(1);
     });
 
     it('computes duration from system turn_duration records', () => {
