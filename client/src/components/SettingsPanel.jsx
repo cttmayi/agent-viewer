@@ -6,6 +6,7 @@ const LABELS = {
   showThinking: 'Thinking 内容',
   showToolCalls: '工具调用详情',
   showSidechains: '子 Agent 侧链',
+  markdownEnabled: 'Markdown 渲染',
   theme: '主题'
 };
 
@@ -36,6 +37,10 @@ const OPTIONS = {
     { value: 'system', label: '跟随系统' },
     { value: 'light', label: '浅色' },
     { value: 'dark', label: '深色' }
+  ],
+  markdownEnabled: [
+    { value: true, label: '开' },
+    { value: false, label: '关' }
   ]
 };
 

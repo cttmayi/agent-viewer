@@ -34,9 +34,11 @@ export default function StatsHeader({ session, stats }) {
     }}>
       <div style={{ fontWeight: 600, marginBottom: '4px' }}>
         {session.title}
-        <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-          {session.agentType} · {session.model || '未知模型'}
-        </span>
+        {session.agentType && (
+          <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+            {session.agentType} · {session.model || '未知模型'}
+          </span>
+        )}
         {session.filePath && (
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginTop: '2px', wordBreak: 'break-all' }}>
             {session.filePath}

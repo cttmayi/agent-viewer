@@ -1,9 +1,11 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
+import MarkdownContent from './MarkdownContent.jsx';
 
 export default function UserMessage({ message }) {
   const { settings } = useSettingsContext();
   const maxLines = settings?.messageMaxLines || 0;
+  const markdownEnabled = settings?.markdownEnabled !== false;
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const textRef = useRef(null);
@@ -21,23 +23,31 @@ export default function UserMessage({ message }) {
     if (el && maxLines > 0) {
       setOverflows(el.scrollHeight > el.clientHeight + 1);
     }
-  }, [text, maxLines, expanded]);
+  }, [text, maxLines, expanded, markdownEnabled]);
 
   if (!text) return null;
 
   const textStyle = {
     background: 'var(--user-msg-bg)', borderRadius: '8px',
-    padding: '10px 14px', maxWidth: '85%',
+    padding: '10px 14px',
     whiteSpace: 'pre-wrap', wordBreak: 'break-word',
     fontSize: '14px', lineHeight: '1.5',
     position: 'relative'
   };
-  const textClamp = maxLines > 0 && !expanded ? {
-    WebkitLineClamp: maxLines,
-    display: '-webkit-box',
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden'
-  } : {};
+
+  const collapsedStyle = markdownEnabled
+    ? { maxHeight: `${maxLines * 1.6}em`, overflow: 'hidden' }
+    : { WebkitLineClamp: maxLines, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' };
+
+  const bodyEl = markdownEnabled ? (
+    <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>
+      <MarkdownContent text={text} />
+    </div>
+  ) : (
+    <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>
+      {text}
+    </div>
+  );
 
   const showButton = maxLines > 0 && (overflows || expanded);
 
@@ -50,9 +60,7 @@ export default function UserMessage({ message }) {
           <span style={{ color: 'var(--accent-color)' }}>用户</span>
           {time && <span style={{ color: 'var(--text-secondary)' }}>{time}</span>}
         </div>
-        <div ref={textRef} style={textClamp}>
-          {text}
-        </div>
+        {bodyEl}
         {showButton && (
           <div
             onClick={() => setExpanded(!expanded)}

@@ -22,18 +22,12 @@ router.get('/:fileId', (req, res) => {
   data.costs = costs;
   for (let i = 0; i < data.messages.length; i++) {
     data.messages[i].cost = costs.messageCosts[i] || null;
-    // Include sidechain message costs in totals and parent message cost
-    let sidechainTotal = 0;
+    // Include sidechain message costs in totals only
     for (const sc of data.messages[i].sidechainMessages || []) {
       sc.cost = calcMessageCost(sc.tokenUsage, sc.model, config.modelPrices);
       if (sc.cost && sc.cost.currency) {
         costs.totalByCurrency[sc.cost.currency] = (costs.totalByCurrency[sc.cost.currency] || 0) + sc.cost.total;
-        sidechainTotal += sc.cost.total;
       }
-    }
-    // Merge subagent costs into parent message cost display
-    if (sidechainTotal > 0 && data.messages[i].cost) {
-      data.messages[i].cost.total += sidechainTotal;
     }
   }
   // Also add to stats for StatsHeader access
@@ -66,6 +60,22 @@ router.get('/:fileId', (req, res) => {
       const count = Math.min(agentCalls.length, sortedGroups.length);
       for (let i = 0; i < count; i++) {
         agentCalls[i].tc.subagent = sortedGroups[i];
+      }
+    }
+  }
+
+  // Compute costs for toolCall subagent messages
+  for (const msg of data.messages) {
+    if (msg.role === 'assistant' && msg.toolCalls) {
+      for (const tc of msg.toolCalls) {
+        if (tc.subagent) {
+          for (const sc of tc.subagent) {
+            sc.cost = calcMessageCost(sc.tokenUsage, sc.model, config.modelPrices);
+            if (sc.cost && sc.cost.currency) {
+              costs.totalByCurrency[sc.cost.currency] = (costs.totalByCurrency[sc.cost.currency] || 0) + sc.cost.total;
+            }
+          }
+        }
       }
     }
   }

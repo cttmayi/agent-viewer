@@ -1,6 +1,6 @@
 {
   "name": "agent-viewer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "bin": {
     "agent-viewer": "./src/index.js"
@@ -19,6 +19,8 @@
     "multer": "^1.4.5-lts.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "ws": "^8.16.0"
   },
   "devDependencies": {

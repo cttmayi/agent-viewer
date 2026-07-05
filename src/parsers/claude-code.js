@@ -218,19 +218,23 @@ function normalizeContent(rec) {
 }
 
 function extractToolCalls(rec) {
-  const content = rec.message?.content || [];
-  const tools = [];
+  const content = rec.message?.content;
+  if (!Array.isArray(content)) return undefined;
+  const toolUses = content.filter(b => b.type === 'tool_use');
+  if (toolUses.length === 0) return undefined;
+  // Build tool_use_id → result content map
+  const resultMap = {};
   for (const block of content) {
-    if (block.type === 'tool_use' || block.type === 'tool_result') {
-      tools.push({
-        name: block.name || block.tool_use_id || 'unknown',
-        type: block.type,
-        input: block.input,
-        output: block.type === 'tool_result' ? block.content : undefined
-      });
+    if (block.type === 'tool_result') {
+      resultMap[block.tool_use_id] = block.content;
     }
   }
-  return tools.length > 0 ? tools : undefined;
+  return toolUses.map(tc => ({
+    name: tc.name,
+    type: 'tool_use',
+    input: tc.input,
+    result: resultMap[tc.id] || undefined,
+  }));
 }
 
 function extractTitle(userMsg) {

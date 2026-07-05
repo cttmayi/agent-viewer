@@ -17,7 +17,8 @@ const DEFAULT_CONFIG = {
     showThinking: 'fold',       // 'fold' | 'unfold' | 'hide'
     showToolCalls: 'fold',      // 'fold' | 'unfold' | 'hide'
     showSidechains: 'fold',     // 'fold' | 'unfold' | 'hide'
-    theme: 'system'             // 'light' | 'dark' | 'system'
+    theme: 'system',            // 'light' | 'dark' | 'system'
+    markdownEnabled: true       // 消息内容是否支持 Markdown 渲染
   },
   modelPrices: {
     "model-a": {

@@ -7,8 +7,60 @@ import { calcMessageCost, calcSessionCost } from '../utils/cost.js';
 
 function SubagentDetailPanel() {
   const { subagent, clearSubagent } = useSubagentPanel();
+  const { modelPrices } = useSettingsContext();
 
   if (!subagent) return null;
+
+  // Compute stats from subagent messages
+  let totalInput = 0, totalOutput = 0, totalCacheCreate = 0, totalCacheRead = 0;
+  let toolCallCount = 0;
+  const toolCount = {};
+  const totalByCurrency = {};
+
+  for (const msg of subagent) {
+    if (msg.tokenUsage) {
+      totalInput += msg.tokenUsage.input || 0;
+      totalOutput += msg.tokenUsage.output || 0;
+      totalCacheCreate += msg.tokenUsage.cacheCreate || 0;
+      totalCacheRead += msg.tokenUsage.cacheRead || 0;
+    }
+    if (msg.toolCalls) {
+      toolCallCount += msg.toolCalls.length;
+      for (const tc of msg.toolCalls) {
+        toolCount[tc.name] = (toolCount[tc.name] || 0) + 1;
+      }
+    }
+    if (!msg.cost) {
+      msg.cost = calcMessageCost(msg.tokenUsage, msg.model, modelPrices);
+    }
+    if (msg.cost?.currency) {
+      totalByCurrency[msg.cost.currency] = (totalByCurrency[msg.cost.currency] || 0) + msg.cost.total;
+    }
+  }
+
+  const topTools = Object.entries(toolCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
+
+  const stats = {
+    totalTurns: Math.ceil(subagent.length / 2),
+    totalInputTokens: totalInput,
+    totalOutputTokens: totalOutput,
+    totalCacheCreateTokens: totalCacheCreate,
+    totalCacheReadTokens: totalCacheRead,
+    totalDuration: 0,
+    toolCallCount,
+    topUsedTools: topTools,
+    totalByCurrency,
+  };
+
+  const subagentSession = {
+    title: '子 Agent 对话',
+    agentType: '',
+    model: '',
+    messageCount: subagent.length,
+  };
 
   return (
     <div style={{
@@ -17,20 +69,12 @@ function SubagentDetailPanel() {
       display: 'flex', flexDirection: 'column',
       background: 'var(--bg-primary)'
     }}>
-      <div style={{
-        padding: '8px 16px', borderBottom: '1px solid var(--border-color)',
-        display: 'flex', alignItems: 'center', gap: '8px',
-        fontSize: '13px'
-      }}>
-        <button
-          type="button"
-          onClick={clearSubagent}
-          style={{ color: 'var(--accent-color)', cursor: 'pointer', fontSize: '13px' }}
-        >
+      <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-color)' }}>
+        <button type="button" onClick={clearSubagent} style={{ color: 'var(--accent-color)', fontSize: '13px' }}>
           ← 返回
         </button>
-        <span style={{ color: 'var(--text-muted)' }}>子 agent 对话 ({subagent.length} 条消息)</span>
       </div>
+      <StatsHeader session={subagentSession} stats={stats} />
       <MessageList messages={subagent} />
     </div>
   );
@@ -62,19 +106,29 @@ export default function SessionView({ session, onBack }) {
   const liveData = useMemo(() => {
     if (!data) return null;
     const costs = calcSessionCost(data.messages || [], modelPrices);
-    // Include sidechain/subagent message costs
+    // Include sidechain/subagent message costs in totals only
     for (let i = 0; i < (data.messages || []).length; i++) {
-      let scTotal = 0;
       for (const sc of data.messages[i].sidechainMessages || []) {
-        const scCost = calcMessageCost(sc.tokenUsage, sc.model, modelPrices);
-        sc.cost = scCost;
-        if (scCost && scCost.currency) {
-          costs.totalByCurrency[scCost.currency] = (costs.totalByCurrency[scCost.currency] || 0) + scCost.total;
-          scTotal += scCost.total;
+        sc.cost = calcMessageCost(sc.tokenUsage, sc.model, modelPrices);
+        if (sc.cost && sc.cost.currency) {
+          costs.totalByCurrency[sc.cost.currency] = (costs.totalByCurrency[sc.cost.currency] || 0) + sc.cost.total;
         }
       }
-      const msgCost = costs.messageCosts[i] || null;
-      if (scTotal > 0 && msgCost) msgCost.total += scTotal;
+    }
+    // Include toolCall subagent costs in totals only
+    for (const msg of data.messages) {
+      if (msg.role === 'assistant' && msg.toolCalls) {
+        for (const tc of msg.toolCalls) {
+          if (tc.subagent) {
+            for (const sc of tc.subagent) {
+              sc.cost = calcMessageCost(sc.tokenUsage, sc.model, modelPrices);
+              if (sc.cost && sc.cost.currency) {
+                costs.totalByCurrency[sc.cost.currency] = (costs.totalByCurrency[sc.cost.currency] || 0) + sc.cost.total;
+              }
+            }
+          }
+        }
+      }
     }
     return {
       ...data,

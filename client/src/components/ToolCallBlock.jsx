@@ -86,17 +86,6 @@ export default function ToolCallBlock({ toolCalls }) {
           {expanded ? '▼' : '▶'} 工具: {toolSummary.join(', ')}
           {hasResult && !expanded && ' ✓'}
         </span>
-        {hasSubagent && (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); selectSubagent(toolCalls.find(tc => tc.name === 'Agent' && tc.subagent)?.subagent); }}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSubagent(toolCalls.find(tc => tc.name === 'Agent' && tc.subagent)?.subagent); } }}
-            style={{ cursor: 'pointer', fontSize: '11px', color: 'var(--accent-color)', whiteSpace: 'nowrap' }}
-          >
-            查看子 agent 过程 →
-          </span>
-        )}
       </div>
       <div id="tool-calls-content">
         {expanded && toolCalls.map((tc, i) => (
