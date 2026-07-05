@@ -19,6 +19,7 @@ export function initStore() {
     remove,
     buildDirectoryTree,
     has,
+    search,
     clear: () => { sessions.clear(); sidechains.clear(); },
     addSidechainGroup,
     getSidechainGroups
@@ -38,6 +39,84 @@ function getSidechainGroups(sessionId) {
 
 function getAll() {
   return Array.from(sessions.values()).map(e => e.session);
+}
+
+function search(query) {
+  if (!query) return [];
+  const q = query.toLowerCase();
+  const results = [];
+  for (const [filePath, entry] of sessions) {
+    if (!entry.messages) continue;
+    const matchedIds = [];
+    for (let i = 0; i < entry.messages.length; i++) {
+      const msg = entry.messages[i];
+      if (!msg.content) continue;
+      const blocks = Array.isArray(msg.content) ? msg.content : [{ text: String(msg.content) }];
+      for (const c of blocks) {
+        if (blockContains(c, q)) {
+          let targetId = msg.id;
+          // tool_result match in a tool_result-only user message → map to preceding assistant
+          // because mergeToolMessages merges/skips these; the rendered element will be the assistant
+          if (msg.role === 'user' && c.type === 'tool_result') {
+            const hasText = blocks.some(b => (b.type === 'text' || b.type === undefined) && b.text);
+            if (!hasText) {
+              for (let j = i - 1; j >= 0; j--) {
+                if (entry.messages[j].role === 'assistant') {
+                  targetId = entry.messages[j].id;
+                  break;
+                }
+              }
+            }
+          }
+          matchedIds.push(targetId);
+          break;
+        }
+      }
+    }
+    if (matchedIds.length > 0) {
+      results.push({ filePath, session: entry.session, matchCount: matchedIds.length, messageIds: matchedIds });
+    }
+  }
+  return results;
+}
+
+function blockContains(c, query) {
+  if (typeof c === 'string') return c.toLowerCase().includes(query);
+  if (c.text && typeof c.text === 'string') return c.text.toLowerCase().includes(query);
+  if (c.thinking && typeof c.thinking === 'string') return c.thinking.toLowerCase().includes(query);
+  if (c.type === 'tool_result' && c.content != null) {
+    const text = extractResultContent(c.content);
+    return text.toLowerCase().includes(query);
+  }
+  return false;
+}
+
+function getMsgText(msg) {
+  if (!msg.content) return '';
+  const parts = Array.isArray(msg.content) ? msg.content : [{ text: String(msg.content) }];
+  return parts.map(c => {
+    if (typeof c === 'string') return c;
+    if (c.text && typeof c.text === 'string') return c.text;
+    // thinking block: {type: "thinking", thinking: "..."}
+    if (c.thinking && typeof c.thinking === 'string') return c.thinking;
+    // tool_result block: {type: "tool_result", content: "..."|array}
+    if (c.type === 'tool_result' && c.content != null) {
+      return extractResultContent(c.content);
+    }
+    return '';
+  }).filter(Boolean).join(' ');
+}
+
+function extractResultContent(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map(x => {
+      if (typeof x === 'string') return x;
+      if (x.text) return x.text;
+      return '';
+    }).filter(Boolean).join(' ');
+  }
+  return '';
 }
 
 function get(filePath) {

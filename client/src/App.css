@@ -30,3 +30,10 @@ input {
   font: inherit;
   color: inherit;
 }
+
+mark {
+  background: #e6a81755;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
+import { HighlightedText } from './MarkdownContent.jsx';
 
-export default function ThinkingBlock({ thinking }) {
+export default function ThinkingBlock({ thinking, highlightQuery }) {
   const { settings } = useSettingsContext();
   const showSetting = settings?.showThinking || 'fold';
 
@@ -36,7 +37,7 @@ export default function ThinkingBlock({ thinking }) {
           whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           color: 'var(--text-secondary)', maxHeight: '400px', overflow: 'auto'
         }}>
-          {thinking}
+          {highlightQuery ? <HighlightedText text={thinking} query={highlightQuery} /> : thinking}
         </pre>
       )}
     </div>

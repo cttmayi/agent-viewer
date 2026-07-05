@@ -1,8 +1,8 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
-import MarkdownContent from './MarkdownContent.jsx';
+import MarkdownContent, { HighlightedText } from './MarkdownContent.jsx';
 
-export default function UserMessage({ message }) {
+export default function UserMessage({ message, isHighlighted, highlightQuery }) {
   const { settings } = useSettingsContext();
   const maxLines = settings?.messageMaxLines || 0;
   const markdownEnabled = settings?.markdownEnabled !== false;
@@ -42,11 +42,11 @@ export default function UserMessage({ message }) {
 
   const bodyEl = markdownEnabled ? (
     <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>
-      <MarkdownContent text={text} />
+      <MarkdownContent text={text} highlight={highlightQuery} />
     </div>
   ) : (
     <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>
-      {text}
+      {highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text}
     </div>
   );
 
@@ -55,8 +55,11 @@ export default function UserMessage({ message }) {
   return (
     <div style={{
       marginBottom: '12px'
-    }}>
-      <div style={textStyle}>
+    }} data-msg-id={message.id}>
+      <div style={{
+        ...textStyle,
+        ...(isHighlighted ? { outline: '2px solid var(--accent-color)', outlineOffset: '-1px' } : {})
+      }}>
         {showHeader && (
           <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--accent-color)' }}>用户</span>

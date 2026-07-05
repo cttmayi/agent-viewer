@@ -80,7 +80,7 @@ function SubagentDetailPanel() {
   );
 }
 
-export default function SessionView({ session, onBack }) {
+export default function SessionView({ session, onBack, searchMessageIds, searchQuery }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -147,7 +147,7 @@ export default function SessionView({ session, onBack }) {
       {/* 主对话 */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <StatsHeader session={liveData.session} stats={liveData.stats} />
-        <MessageList messages={liveData.messages} />
+        <MessageList messages={liveData.messages} searchMessageIds={searchMessageIds} searchQuery={searchQuery} />
       </div>
       {/* 子 agent 详情面板 */}
       <SubagentDetailPanel />

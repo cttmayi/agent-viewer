@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import UserMessage from './UserMessage.jsx';
 import AssistantMessage from './AssistantMessage.jsx';
 import SystemMessage from './SystemMessage.jsx';
 
 function hasToolResult(msg) {
-  return msg.toolCalls?.some(tc => tc.type === 'tool_result');
+  if (msg.toolCalls?.some(tc => tc.type === 'tool_result')) return true;
+  if (!msg.content) return false;
+  const blocks = Array.isArray(msg.content) ? msg.content : [];
+  return blocks.some(c => c.type === 'tool_result');
 }
 
 function hasTextContent(msg) {
@@ -44,22 +47,44 @@ function mergeToolMessages(messages) {
   return result;
 }
 
-function renderMessage(msg, i) {
+function renderMessage(msg, i, highlightSet, highlightQuery) {
   const key = msg.id || `msg-${i}`;
+  const isHighlighted = highlightSet?.has(msg.id);
   switch (msg.role) {
     case 'assistant':
-      return <AssistantMessage key={key} message={msg} />;
+      return <AssistantMessage key={key} message={msg} isHighlighted={isHighlighted} highlightQuery={highlightQuery} />;
     case 'user':
     case 'attachment':
-      return <UserMessage key={key} message={msg} />;
+      return <UserMessage key={key} message={msg} isHighlighted={isHighlighted} highlightQuery={highlightQuery} />;
     case 'system':
-      return <SystemMessage key={key} message={msg} />;
+      return <SystemMessage key={key} message={msg} isHighlighted={isHighlighted} highlightQuery={highlightQuery} />;
     default:
-      return <SystemMessage key={key} message={msg} />;
+      return <SystemMessage key={key} message={msg} isHighlighted={isHighlighted} highlightQuery={highlightQuery} />;
   }
 }
 
-export default function MessageList({ messages }) {
+export default function MessageList({ messages, searchMessageIds, searchQuery }) {
+  const containerRef = useRef(null);
+  // stable key: first match ID + message count triggers re-scroll on data load or re-click
+  const scrollKey = searchMessageIds?.length ? `${searchMessageIds[0]}-${messages?.length || 0}` : null;
+
+  useEffect(() => {
+    if (!scrollKey) return;
+    const timer = setTimeout(() => {
+      const firstId = searchMessageIds[0];
+      const el = containerRef.current?.querySelector(`[data-msg-id="${firstId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [scrollKey]);
+
+  const highlightSet = useMemo(() => {
+    if (!searchMessageIds?.length) return null;
+    return new Set(searchMessageIds);
+  }, [searchMessageIds]);
+
   if (!messages || messages.length === 0) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
@@ -71,8 +96,8 @@ export default function MessageList({ messages }) {
   const merged = mergeToolMessages(messages);
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-      {merged.map((msg, i) => renderMessage(msg, i))}
+    <div ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+      {merged.map((msg, i) => renderMessage(msg, i, highlightSet, searchQuery))}
     </div>
   );
 }

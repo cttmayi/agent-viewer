@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function SessionNode({ node, onSelect, isSelected, depth = 0 }) {
+export default function SessionNode({ node, onSelect, isSelected, matchCount, depth = 0 }) {
   const indent = depth * 16;
   const session = node.session;
   const date = session?.startTime
@@ -23,6 +23,11 @@ export default function SessionNode({ node, onSelect, isSelected, depth = 0 }) {
     >
       <div style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {title}
+        {matchCount != null && (
+          <span style={{ color: 'var(--accent-color)', marginLeft: '6px', fontSize: '11px' }}>
+            ({matchCount} 条匹配)
+          </span>
+        )}
       </div>
       <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
         <span>{session?.agentType}</span>

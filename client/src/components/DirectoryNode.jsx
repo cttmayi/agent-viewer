@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
 import SessionNode from './SessionNode.jsx';
 
-function matchesFilter(node, filter) {
+function matchesFilter(node, filter, contentMatchPaths) {
   if (!filter) return true;
   const q = filter.toLowerCase();
   const title = node.session?.title || '';
   if (title.toLowerCase().includes(q)) return true;
   if (node.session?.agentType?.toLowerCase().includes(q)) return true;
+  if (contentMatchPaths && contentMatchPaths.has(node.session?.filePath)) return true;
   return false;
 }
 
-function hasVisibleChildren(node, filter) {
+function hasVisibleChildren(node, filter, contentMatchPaths) {
   if (!node.children) return false;
   return node.children.some(child => {
-    if (child.type === 'directory') return hasVisibleChildren(child, filter);
-    return matchesFilter(child, filter);
+    if (child.type === 'directory') return hasVisibleChildren(child, filter, contentMatchPaths);
+    return matchesFilter(child, filter, contentMatchPaths);
   });
 }
 
-export default function DirectoryNode({ node, filter, onSelect, selectedSessionId, depth = 0 }) {
+export default function DirectoryNode({ node, filter, contentMatchPaths, onSelect, selectedSessionId, matchCountMap, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth === 0);
-  const visible = filter ? hasVisibleChildren(node, filter) : true;
+  const visible = filter ? hasVisibleChildren(node, filter, contentMatchPaths) : true;
   const indent = depth * 16;
 
   if (!visible) return null;
@@ -39,8 +40,8 @@ export default function DirectoryNode({ node, filter, onSelect, selectedSessionI
       return a.name.localeCompare(b.name);
     })
     .filter(child => {
-      if (child.type === 'directory') return hasVisibleChildren(child, filter);
-      return matchesFilter(child, filter);
+      if (child.type === 'directory') return hasVisibleChildren(child, filter, contentMatchPaths);
+      return matchesFilter(child, filter, contentMatchPaths);
     });
 
   return (
@@ -64,8 +65,10 @@ export default function DirectoryNode({ node, filter, onSelect, selectedSessionI
             key={child.name}
             node={child}
             filter={filter}
+            contentMatchPaths={contentMatchPaths}
             onSelect={onSelect}
             selectedSessionId={selectedSessionId}
+            matchCountMap={matchCountMap}
             depth={depth + 1}
           />
         ) : (
@@ -74,6 +77,7 @@ export default function DirectoryNode({ node, filter, onSelect, selectedSessionI
             node={child}
             onSelect={onSelect}
             isSelected={child.session?.id === selectedSessionId}
+            matchCount={matchCountMap?.[child.session?.filePath]}
             depth={depth + 1}
           />
         )

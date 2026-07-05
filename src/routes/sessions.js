@@ -9,6 +9,14 @@ router.get('/directory-tree', (req, res) => {
   res.json(tree);
 });
 
+router.get('/search', (req, res) => {
+  const { store } = req.app.locals;
+  const { q } = req.query;
+  if (!q) return res.json([]);
+  const results = store.search(q);
+  res.json(results);
+});
+
 router.get('/:fileId', (req, res) => {
   const { store, config } = req.app.locals;
   const filePath = Buffer.from(req.params.fileId, 'base64').toString('utf-8');

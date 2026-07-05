@@ -1,8 +1,8 @@
 import React from 'react';
-import MarkdownContent from './MarkdownContent.jsx';
+import MarkdownContent, { HighlightedText } from './MarkdownContent.jsx';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
 
-export default function SystemMessage({ message }) {
+export default function SystemMessage({ message, isHighlighted, highlightQuery }) {
   const { settings } = useSettingsContext();
   const markdownEnabled = settings?.markdownEnabled !== false;
 
@@ -22,9 +22,12 @@ export default function SystemMessage({ message }) {
   return (
     <div style={{
       marginBottom: '12px', display: 'flex', justifyContent: 'center'
-    }}>
-      <div style={style}>
-        {markdownEnabled ? <MarkdownContent text={text} /> : text}
+    }} data-msg-id={message.id}>
+      <div style={{
+        ...style,
+        ...(isHighlighted ? { outline: '2px solid var(--accent-color)', outlineOffset: '-1px' } : {})
+      }}>
+        {markdownEnabled ? <MarkdownContent text={text} highlight={highlightQuery} /> : highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text}
       </div>
     </div>
   );

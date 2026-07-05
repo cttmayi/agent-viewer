@@ -22,6 +22,8 @@ function ThemeApplier() {
 
 export default function Layout() {
   const [selectedNode, setSelectedNode] = useState(null);
+  const [searchMessageIds, setSearchMessageIds] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(null);
   const [directoryTree, setDirectoryTree] = useState({ name: 'root', children: [] });
   const [loading, setLoading] = useState(true);
 
@@ -42,6 +44,18 @@ export default function Layout() {
     }
   }, [fetchTree]));
 
+  const handleSelectSession = useCallback((node, messageIds, query) => {
+    setSelectedNode(node);
+    setSearchMessageIds(messageIds || null);
+    setSearchQuery(query || null);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setSelectedNode(null);
+    setSearchMessageIds(null);
+    setSearchQuery(null);
+  }, []);
+
   const selectedSession = selectedNode ? { session: selectedNode.session } : null;
 
   return (
@@ -51,13 +65,15 @@ export default function Layout() {
         <DragDropOverlay />
         <Sidebar
           directoryTree={directoryTree}
-          onSelectSession={setSelectedNode}
+          onSelectSession={handleSelectSession}
           selectedSessionId={selectedNode?.session?.id}
         />
         <SubagentPanelProvider>
           <MainArea
             selectedSession={selectedSession}
-            onBack={() => setSelectedNode(null)}
+            onBack={handleBack}
+            searchMessageIds={searchMessageIds}
+            searchQuery={searchQuery}
           />
         </SubagentPanelProvider>
       </div>

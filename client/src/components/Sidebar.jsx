@@ -6,6 +6,35 @@ import SettingsPanel from './SettingsPanel.jsx';
 export default function Sidebar({ directoryTree, onSelectSession, selectedSessionId }) {
   const [filter, setFilter] = React.useState('');
   const [showSettings, setShowSettings] = React.useState(false);
+  const [contentMatches, setContentMatches] = React.useState(null);
+
+  // Build filePath → messageIds map from search results
+  const searchMatchMap = React.useMemo(() => {
+    if (!contentMatches) return null;
+    const m = new Map();
+    for (const r of contentMatches) {
+      if (r.messageIds) m.set(r.filePath, r.messageIds);
+    }
+    return m;
+  }, [contentMatches]);
+
+  const handleSelect = React.useCallback((node) => {
+    const messageIds = searchMatchMap?.get(node.session?.filePath);
+    onSelectSession(node, messageIds, filter || undefined);
+  }, [onSelectSession, searchMatchMap, filter]);
+
+  React.useEffect(() => {
+    if (!filter) {
+      setContentMatches(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetch(`/api/sessions/search?q=${encodeURIComponent(filter)}`, { signal: controller.signal })
+      .then(r => r.json())
+      .then(data => setContentMatches(data))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [filter]);
 
   return (
     <div style={{
@@ -22,7 +51,8 @@ export default function Sidebar({ directoryTree, onSelectSession, selectedSessio
         <DirectoryTree
           node={directoryTree}
           filter={filter}
-          onSelect={onSelectSession}
+          contentMatches={contentMatches}
+          onSelect={handleSelect}
           selectedSessionId={selectedSessionId}
         />
       </div>

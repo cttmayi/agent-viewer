@@ -1,7 +1,7 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import ThinkingBlock from './ThinkingBlock.jsx';
 import ToolCallBlock from './ToolCallBlock.jsx';
-import MarkdownContent from './MarkdownContent.jsx';
+import MarkdownContent, { HighlightedText } from './MarkdownContent.jsx';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
 import { useSubagentPanel } from '../hooks/SubagentPanelContext.jsx';
 
@@ -21,7 +21,7 @@ function formatMsgCost(cost) {
   return symbol + cost.total.toFixed(4);
 }
 
-export default function AssistantMessage({ message }) {
+export default function AssistantMessage({ message, isHighlighted, highlightQuery }) {
   const { settings } = useSettingsContext();
   const { selectSubagent } = useSubagentPanel();
   const maxLines = settings?.messageMaxLines || 0;
@@ -86,17 +86,18 @@ export default function AssistantMessage({ message }) {
   const showButton = maxLines > 0 && text && (overflows || expanded);
 
   const textEl = markdownEnabled
-    ? <MarkdownContent text={text} />
-    : text;
+    ? <MarkdownContent text={text} highlight={highlightQuery} />
+    : highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text;
 
   return (
-    <div style={{ marginBottom: '12px' }}>
+    <div style={{ marginBottom: '12px' }} data-msg-id={message.id}>
       <div style={{
         background: 'var(--assistant-msg-bg)', borderRadius: '8px',
         padding: '10px 14px',
         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
         fontSize: '14px', lineHeight: '1.5',
-        position: 'relative'
+        position: 'relative',
+        ...(isHighlighted ? { outline: '2px solid var(--accent-color)', outlineOffset: '-1px' } : {})
       }}>
         {showHeader && (
           <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
@@ -111,7 +112,7 @@ export default function AssistantMessage({ message }) {
             {subagentLink}
           </div>
         )}
-        <ThinkingBlock thinking={thinkingText} />
+        <ThinkingBlock thinking={thinkingText} highlightQuery={highlightQuery} />
         {text && <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>{textEl}</div>}
         {showButton && (
           <div
