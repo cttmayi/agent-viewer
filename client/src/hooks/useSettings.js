@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 export default function useSettings() {
   const [settings, setSettings] = useState(null);
   const [modelPrices, setModelPrices] = useState(null);
+  const [version, setVersion] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -11,6 +12,7 @@ export default function useSettings() {
       .then(data => {
         setSettings(data.settings);
         setModelPrices(data.modelPrices || {});
+        setVersion(data.version || '');
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -40,5 +42,5 @@ export default function useSettings() {
     }
   }, []);
 
-  return { settings, modelPrices, loading, update, updateModelPrices };
+  return { settings, modelPrices, version, loading, update, updateModelPrices };
 }

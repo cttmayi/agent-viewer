@@ -1,11 +1,17 @@
 import { Router } from 'express';
 import { getConfig, updateConfig } from '../config.js';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(path.join(__dirname, '../../package.json'), 'utf-8'));
 
 const router = Router();
 
 router.get('/', async (req, res) => {
   const config = await getConfig();
-  res.json(config);
+  res.json({ ...config, version: pkg.version });
 });
 
 router.put('/', async (req, res) => {

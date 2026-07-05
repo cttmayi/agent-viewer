@@ -50,7 +50,7 @@ const OPTIONS = {
 };
 
 export default function SettingsPanel({ onClose }) {
-  const { settings, modelPrices, loading, update, updateModelPrices } = useSettingsContext();
+  const { settings, modelPrices, version, loading, update, updateModelPrices } = useSettingsContext();
   const [pricesText, setPricesText] = useState('');
   const [parseError, setParseError] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
@@ -169,6 +169,9 @@ export default function SettingsPanel({ onClose }) {
             {saveStatus && <span style={{ color: 'var(--text-success)', fontSize: '12px' }}>{saveStatus}</span>}
           </div>
           {parseError && <div style={{ color: '#e74c3c', fontSize: '12px', marginTop: '4px' }}>{parseError}</div>}
+        </div>
+        <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '12px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+          agent-viewer v{version}
         </div>
       </div>
     </div>

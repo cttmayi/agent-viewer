@@ -168,6 +168,7 @@ describe('watcher', () => {
     });
 
     it('handles read errors gracefully', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
       fs.readFile = vi.fn().mockRejectedValue(new Error('read failed'));
       const store = makeStore();
       const watcher = initWatcher(makeConfig(), store, makeWss());
