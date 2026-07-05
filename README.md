@@ -8,9 +8,11 @@
 
 - **目录树浏览** — 按文件目录结构展示会话列表，支持展开/收起
 - **会话详情** — 查看完整对话流，包含用户/AI/系统消息
-- **统计摘要** — 消息数、Token 用量（输入/输出/缓存）、耗时、工具调用统计、模型用量
+- **统计摘要** — 消息数、Token 用量（输入/输出/缓存）、Token 费用、耗时、工具调用统计、模型用量
+- **Markdown 渲染** — 消息内容支持 Markdown 显示（代码块、表格、列表等），可在设置中关闭
 - **子代理侧链** — 自动识别并分组 `isSidechain=true` 的子对话
-- **子代理面板** — 右侧独立面板查看子 agent 完整对话过程
+- **子代理面板** — 右侧独立面板查看子 agent 完整对话过程，含统计摘要
+- **费用计算** — 根据模型单价计算每条消息和会话总费用，支持多币种
 - **格式支持**
   - Claude Code JSONL — 基于 `parentUuid` 的消息树构建、sidechain 提取
   - Codex JSONL — `session_meta` + `response_item` 格式
@@ -95,6 +97,8 @@ npm run test:watch
 | `showThinking` | fold / unfold / hide | AI thinking 内容的显示策略 |
 | `showToolCalls` | fold / unfold / hide | 工具调用详情的显示策略 |
 | `showSidechains` | fold / unfold / hide | 子代理侧链的显示策略 |
+| `markdownEnabled` | true / false | 消息内容 Markdown 渲染 |
+| `showMessageHeader` | true / false | 消息头部（角色、时间、模型等）显示/隐藏 |
 | `theme` | system / light / dark | 主题 |
 
 ## 项目结构
@@ -117,8 +121,9 @@ agent-viewer/
 │   │   │   ├── SessionView.jsx    # 会话详情容器
 │   │   │   ├── StatsHeader.jsx    # 统计摘要栏
 │   │   │   ├── MessageList.jsx    # 消息流容器
-│   │   │   ├── UserMessage.jsx    # 用户消息气泡（左对齐，85% 宽度）
-│   │   │   ├── AssistantMessage.jsx# AI 消息气泡（含模型/时间元数据）
+│   │   │   ├── UserMessage.jsx    # 用户消息气泡
+│   │   │   ├── AssistantMessage.jsx# AI 消息气泡（含模型/时间/费用元数据）
+│   │   │   ├── MarkdownContent.jsx # Markdown 渲染组件
 │   │   │   ├── SystemMessage.jsx  # 系统消息
 │   │   │   ├── ThinkingBlock.jsx  # thinking 折叠块
 │   │   │   ├── ToolCallBlock.jsx  # 工具调用折叠块（含参数预览）
