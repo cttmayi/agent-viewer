@@ -26,6 +26,7 @@ export default function AssistantMessage({ message }) {
   const { selectSubagent } = useSubagentPanel();
   const maxLines = settings?.messageMaxLines || 0;
   const markdownEnabled = settings?.markdownEnabled !== false;
+  const showHeader = settings?.showMessageHeader !== false;
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const textRef = useRef(null);
@@ -97,17 +98,19 @@ export default function AssistantMessage({ message }) {
         fontSize: '14px', lineHeight: '1.5',
         position: 'relative'
       }}>
-        <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-            <span style={{ color: 'var(--accent-color)' }}>AI</span>
-            {message.model && <span style={{ color: '#4fc3f7' }}> · {message.model}</span>}
-            <span style={{ color: 'var(--text-secondary)' }}> · {[time, duration].filter(Boolean).join(' · ')}</span>
-            {tokenBreakdown && <span style={{ color: '#34d399' }}> · {tokenBreakdown}</span>}
-            {msgCost && <span style={{ color: '#e6a817' }}> · {msgCost}</span>}
-            {subagentCostStr && <span style={{ color: '#e6a817', opacity: 0.65 }}> · 子Agent:{subagentCostStr}</span>}
-          </span>
-          {subagentLink}
-        </div>
+        {showHeader && (
+          <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              <span style={{ color: 'var(--accent-color)' }}>AI</span>
+              {message.model && <span style={{ color: '#4fc3f7' }}> · {message.model}</span>}
+              <span style={{ color: 'var(--text-secondary)' }}> · {[time, duration].filter(Boolean).join(' · ')}</span>
+              {tokenBreakdown && <span style={{ color: '#34d399' }}> · {tokenBreakdown}</span>}
+              {msgCost && <span style={{ color: '#e6a817' }}> · {msgCost}</span>}
+              {subagentCostStr && <span style={{ color: '#e6a817', opacity: 0.65 }}> · 子Agent:{subagentCostStr}</span>}
+            </span>
+            {subagentLink}
+          </div>
+        )}
         <ThinkingBlock thinking={thinkingText} />
         {text && <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>{textEl}</div>}
         {showButton && (

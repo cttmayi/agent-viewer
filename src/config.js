@@ -18,7 +18,8 @@ const DEFAULT_CONFIG = {
     showToolCalls: 'fold',      // 'fold' | 'unfold' | 'hide'
     showSidechains: 'fold',     // 'fold' | 'unfold' | 'hide'
     theme: 'system',            // 'light' | 'dark' | 'system'
-    markdownEnabled: true       // 消息内容是否支持 Markdown 渲染
+    markdownEnabled: true,      // 消息内容是否支持 Markdown 渲染
+    showMessageHeader: true     // 消息头（用户/AI、时间、模型等）是否显示
   },
   modelPrices: {
     "model-a": {

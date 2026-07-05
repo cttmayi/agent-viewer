@@ -7,6 +7,7 @@ const LABELS = {
   showToolCalls: '工具调用详情',
   showSidechains: '子 Agent 侧链',
   markdownEnabled: 'Markdown 渲染',
+  showMessageHeader: '消息头部',
   theme: '主题'
 };
 
@@ -41,6 +42,10 @@ const OPTIONS = {
   markdownEnabled: [
     { value: true, label: '开' },
     { value: false, label: '关' }
+  ],
+  showMessageHeader: [
+    { value: true, label: '显示' },
+    { value: false, label: '隐藏' }
   ]
 };
 

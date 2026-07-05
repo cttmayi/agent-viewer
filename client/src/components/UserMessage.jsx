@@ -6,6 +6,7 @@ export default function UserMessage({ message }) {
   const { settings } = useSettingsContext();
   const maxLines = settings?.messageMaxLines || 0;
   const markdownEnabled = settings?.markdownEnabled !== false;
+  const showHeader = settings?.showMessageHeader !== false;
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const textRef = useRef(null);
@@ -56,10 +57,12 @@ export default function UserMessage({ message }) {
       marginBottom: '12px'
     }}>
       <div style={textStyle}>
-        <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ color: 'var(--accent-color)' }}>用户</span>
-          {time && <span style={{ color: 'var(--text-secondary)' }}>{time}</span>}
-        </div>
+        {showHeader && (
+          <div style={{ fontSize: '11px', marginBottom: '6px', fontWeight: 500, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--accent-color)' }}>用户</span>
+            {time && <span style={{ color: 'var(--text-secondary)' }}>{time}</span>}
+          </div>
+        )}
         {bodyEl}
         {showButton && (
           <div
