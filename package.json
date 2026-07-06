@@ -1,6 +1,6 @@
 {
   "name": "agent-viewer",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "bin": {
     "agent-viewer": "./src/index.js"
