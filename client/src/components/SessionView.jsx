@@ -6,7 +6,7 @@ import { useSubagentPanel } from '../hooks/SubagentPanelContext.jsx';
 import { calcMessageCost, calcSessionCost } from '../utils/cost.js';
 
 function SubagentDetailPanel() {
-  const { subagent, clearSubagent } = useSubagentPanel();
+  const { subagent, subagentFilePath, clearSubagent } = useSubagentPanel();
   const { modelPrices } = useSettingsContext();
 
   if (!subagent) return null;
@@ -60,6 +60,7 @@ function SubagentDetailPanel() {
     agentType: '',
     model: '',
     messageCount: subagent.length,
+    filePath: subagentFilePath,
   };
 
   return (
@@ -68,11 +69,14 @@ function SubagentDetailPanel() {
       borderLeft: '1px solid var(--border-color)',
       display: 'flex', flexDirection: 'column',
       background: 'var(--bg-primary)'
-    }}>
-      <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-color)' }}>
+    }} data-subagent-panel>
+      <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button type="button" onClick={clearSubagent} style={{ color: 'var(--accent-color)', fontSize: '13px' }}>
           ← 返回
         </button>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          {subagent.length} 条消息 · {subagent[0]?.sessionId?.slice(0, 12) || ''}... · {subagent[0]?.role || '?'} · F:{subagent[0]?.filePath?.slice(-20) || '-'}
+        </span>
       </div>
       <StatsHeader session={subagentSession} stats={stats} />
       <MessageList messages={subagent} />
@@ -95,7 +99,7 @@ export default function SessionView({ session, onBack, searchMessageIds, searchQ
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/sessions/${fileId}`, { signal: controller.signal })
+    fetch(`/api/sessions/${fileId}?_t=${Date.now()}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load')))
       .then(d => { if (!controller.signal.aborted) { setData(d); setLoading(false); } })
       .catch(e => { if (!controller.signal.aborted) { setError(e.message || '加载失败'); setLoading(false); } });

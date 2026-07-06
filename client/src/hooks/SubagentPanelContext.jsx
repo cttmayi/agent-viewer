@@ -4,17 +4,20 @@ const SubagentPanelContext = createContext(null);
 
 export function SubagentPanelProvider({ children }) {
   const [subagent, setSubagent] = useState(null);
+  const [subagentFilePath, setSubagentFilePath] = useState('');
 
-  const selectSubagent = useCallback((messages) => {
+  const selectSubagent = useCallback((messages, filePath) => {
     setSubagent(messages);
+    setSubagentFilePath(filePath || '');
   }, []);
 
   const clearSubagent = useCallback(() => {
     setSubagent(null);
+    setSubagentFilePath('');
   }, []);
 
   return (
-    <SubagentPanelContext.Provider value={{ subagent, selectSubagent, clearSubagent }}>
+    <SubagentPanelContext.Provider value={{ subagent, subagentFilePath, selectSubagent, clearSubagent }}>
       {children}
     </SubagentPanelContext.Provider>
   );

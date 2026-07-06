@@ -3,7 +3,6 @@ import ThinkingBlock from './ThinkingBlock.jsx';
 import ToolCallBlock from './ToolCallBlock.jsx';
 import MarkdownContent, { HighlightedText } from './MarkdownContent.jsx';
 import { useSettingsContext } from '../hooks/SettingsContext.jsx';
-import { useSubagentPanel } from '../hooks/SubagentPanelContext.jsx';
 
 function formatTokenBreakdown(msg) {
   const parts = [];
@@ -23,7 +22,6 @@ function formatMsgCost(cost) {
 
 export default function AssistantMessage({ message, isHighlighted, highlightQuery }) {
   const { settings } = useSettingsContext();
-  const { selectSubagent } = useSubagentPanel();
   const maxLines = settings?.messageMaxLines || 0;
   const markdownEnabled = settings?.markdownEnabled !== false;
   const showHeader = settings?.showMessageHeader !== false;
@@ -58,19 +56,6 @@ export default function AssistantMessage({ message, isHighlighted, highlightQuer
     }
   }
   const subagentCostStr = subagentTotal > 0 ? formatMsgCost({ total: subagentTotal, currency: subagentCurrency }) : '';
-
-  const hasSubagent = message.toolCalls?.some(tc => tc.name === 'Agent' && tc.subagent);
-  const subagentLink = hasSubagent ? (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); selectSubagent(message.toolCalls.find(tc => tc.name === 'Agent' && tc.subagent).subagent); }}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSubagent(message.toolCalls.find(tc => tc.name === 'Agent' && tc.subagent).subagent); } }}
-      style={{ cursor: 'pointer', fontSize: '11px', color: 'var(--accent-color)', whiteSpace: 'nowrap' }}
-    >
-      查看子 agent →
-    </span>
-  ) : null;
 
   useLayoutEffect(() => {
     const el = textRef.current;
@@ -109,11 +94,11 @@ export default function AssistantMessage({ message, isHighlighted, highlightQuer
               {msgCost && <span style={{ color: '#e6a817' }}> · {msgCost}</span>}
               {subagentCostStr && <span style={{ color: '#e6a817', opacity: 0.65 }}> · 子Agent:{subagentCostStr}</span>}
             </span>
-            {subagentLink}
           </div>
         )}
-        <ThinkingBlock thinking={thinkingText} highlightQuery={highlightQuery} />
         {text && <div ref={textRef} style={maxLines > 0 && !expanded ? collapsedStyle : {}}>{textEl}</div>}
+        <ThinkingBlock thinking={thinkingText} highlightQuery={highlightQuery} />
+        <ToolCallBlock toolCalls={message.toolCalls} />
         {showButton && (
           <div
             onClick={() => setExpanded(!expanded)}
@@ -125,7 +110,6 @@ export default function AssistantMessage({ message, isHighlighted, highlightQuer
             {expanded ? '收起' : '展开全部'}
           </div>
         )}
-        <ToolCallBlock toolCalls={message.toolCalls} />
       </div>
     </div>
   );

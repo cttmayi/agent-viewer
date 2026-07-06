@@ -162,10 +162,11 @@ describe('store', () => {
   describe('sidechain groups', () => {
     it('adds and retrieves sidechain groups', () => {
       const messages = [{ id: 'm1' }, { id: 'm2' }];
-      store.addSidechainGroup('session-1', messages);
+      store.addSidechainGroup('session-1', messages, '/path/to/file.jsonl');
       const groups = store.getSidechainGroups('session-1');
       expect(groups).toHaveLength(1);
-      expect(groups[0]).toBe(messages);
+      expect(groups[0].messages).toBe(messages);
+      expect(groups[0].filePath).toBe('/path/to/file.jsonl');
     });
 
     it('returns empty array for unknown session', () => {

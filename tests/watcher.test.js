@@ -33,7 +33,10 @@ function makeStore() {
       if (!sidechainMap.has(sessionId)) sidechainMap.set(sessionId, []);
       sidechainMap.get(sessionId).push(...messages);
     }),
-    getSidechainsForSession: vi.fn(sessionId => sidechainMap.get(sessionId) || [])
+    getSidechainsForSession: vi.fn(sessionId => sidechainMap.get(sessionId) || []),
+    registerCodexSubagentLink: vi.fn(),
+    lookupCodexSubagentLink: vi.fn(() => null),
+    linkCodexSubagents: vi.fn()
   };
 }
 

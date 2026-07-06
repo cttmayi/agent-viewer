@@ -3,6 +3,11 @@ import { calcSessionCost, calcMessageCost } from '../cost.js';
 
 const router = Router();
 
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  next();
+});
+
 router.get('/directory-tree', (req, res) => {
   const { store, config } = req.app.locals;
   const tree = store.buildDirectoryTree(config.directories);
@@ -45,12 +50,12 @@ router.get('/:fileId', (req, res) => {
   if (data.session && data.session.id && data.messages) {
     const groups = store.getSidechainGroups(data.session.id);
     if (groups.length > 0) {
-      // Collect all Agent tool_uses with msg timestamp
+      // Collect all Agent/spawn_agent tool_uses with msg timestamp
       const agentCalls = [];
       for (const msg of data.messages) {
         if (msg.role === 'assistant' && msg.toolCalls?.length) {
           for (const tc of msg.toolCalls) {
-            if (tc.name === 'Agent' && tc.type === 'tool_use') {
+            if (tc.name === 'Agent' || tc.name === 'spawn_agent') {
               agentCalls.push({ tc, timestamp: msg.timestamp });
             }
           }
@@ -60,14 +65,15 @@ router.get('/:fileId', (req, res) => {
       // Sort both by timestamp and match 1:1
       agentCalls.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       const sortedGroups = [...groups].sort((a, b) => {
-        const ta = a[0]?.timestamp || '';
-        const tb = b[0]?.timestamp || '';
+        const ta = a.messages[0]?.timestamp || '';
+        const tb = b.messages[0]?.timestamp || '';
         return new Date(ta) - new Date(tb);
       });
 
       const count = Math.min(agentCalls.length, sortedGroups.length);
       for (let i = 0; i < count; i++) {
-        agentCalls[i].tc.subagent = sortedGroups[i];
+        agentCalls[i].tc.subagent = sortedGroups[i].messages;
+        agentCalls[i].tc.subagentFilePath = sortedGroups[i].filePath;
       }
     }
   }

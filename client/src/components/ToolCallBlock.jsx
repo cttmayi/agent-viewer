@@ -54,85 +54,91 @@ export default function ToolCallBlock({ toolCalls }) {
 
   if (!toolCalls || toolCalls.length === 0 || showSetting === 'hide') return null;
 
-  const [expanded, setExpanded] = useState(showSetting === 'unfold');
-
-  const toolSummary = toolCalls.map(tc => {
-    const preview = getParamPreview(tc);
-    return preview ? `${tc.name}(${preview})` : tc.name;
+  const [expandedSet, setExpandedSet] = useState(() => {
+    if (showSetting === 'unfold') return new Set(toolCalls.map((_, i) => i));
+    return new Set();
   });
 
-  function handleKeyDown(e) {
+  function toggleToolCall(index) {
+    setExpandedSet(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  function handleKeyDown(e, index) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setExpanded(!expanded);
+      toggleToolCall(index);
     }
   }
 
-  const hasResult = toolCalls.some(tc => tc.result);
-  const hasSubagent = toolCalls.some(tc => tc.name === 'Agent' && tc.subagent);
-
   return (
     <div style={{ margin: '8px 0' }}>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setExpanded(!expanded)}
-        onKeyDown={handleKeyDown}
-        aria-expanded={expanded}
-        aria-controls="tool-calls-content"
-        style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-      >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {expanded ? '▼' : '▶'} 工具: {toolSummary.join(', ')}
-          {hasResult && !expanded && ' ✓'}
-        </span>
-      </div>
-      <div id="tool-calls-content">
-        {expanded && toolCalls.map((tc, i) => (
-          <div key={tc.name + '-' + i} style={{
-            marginTop: '4px', padding: '8px', borderRadius: '4px',
-            background: 'var(--bg-secondary)', fontSize: '12px',
-            fontFamily: 'var(--font-mono)'
-          }}>
-            <div style={{ color: 'var(--accent-color)', marginBottom: '4px' }}>
-              → {tc.name}
-            </div>
-            {tc.input && <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
-              {JSON.stringify(tc.input, null, 2)}
-            </pre>}
-            {tc.result && (
-              <div style={{ marginTop: '4px', borderTop: '1px solid var(--border-color)', paddingTop: '4px' }}>
-                <div style={{ color: 'var(--text-success, #22c55e)', marginBottom: '2px', fontSize: '11px' }}>← 返回结果:</div>
-                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--text-secondary)', maxHeight: '200px', overflow: 'auto' }}>
-                  {formatOutput(tc.result)}
-                </pre>
-              </div>
-            )}
-            {tc.name === 'Agent' && tc.subagent && (
-              <div style={{ marginTop: '6px', borderTop: '1px dashed var(--border-color)', paddingTop: '6px' }}>
-                <div
+      {toolCalls.map((tc, i) => {
+        const expanded = expandedSet.has(i);
+        const hasResult = !!tc.result;
+        const preview = getParamPreview(tc);
+        const summary = preview ? `${tc.name}(${preview})` : tc.name;
+
+        const isSubagent = (tc.name === 'Agent' || tc.name === 'spawn_agent') && tc.subagent;
+
+        return (
+          <div key={tc.name + '-' + i} style={{ marginTop: i > 0 ? '4px' : 0 }}>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => toggleToolCall(i)}
+              onKeyDown={e => handleKeyDown(e, i)}
+              aria-expanded={expanded}
+              style={{ cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', userSelect: 'none', display: 'flex', alignItems: 'center', padding: '2px 0' }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                {expanded ? '▼' : '▶'} {summary}
+                {hasResult && !expanded && ' ✓'}
+              </span>
+              {isSubagent && (
+                <span
                   role="button"
                   tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); selectSubagent(tc.subagent); }}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSubagent(tc.subagent); } }}
+                  onClick={(e) => { e.stopPropagation(); selectSubagent(tc.subagent, tc.subagentFilePath); }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSubagent(tc.subagent, tc.subagentFilePath); } }}
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    cursor: 'pointer', fontSize: '12px', color: 'var(--accent-color)',
-                    padding: '3px 8px', borderRadius: '4px',
-                    background: 'var(--bg-tertiary, rgba(255,255,255,0.05))',
-                    userSelect: 'none'
+                    cursor: 'pointer', fontSize: '11px', color: 'var(--accent-color)',
+                    whiteSpace: 'nowrap', marginLeft: '8px'
                   }}
                 >
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M3 3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3zm2 0v8h6V3H5zm2 10H4v1.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V13H7z"/>
-                  </svg>
                   查看子 agent 过程
+                </span>
+              )}
+            </div>
+            {expanded && (
+              <div style={{
+                marginTop: '4px', padding: '8px', borderRadius: '4px',
+                background: 'var(--bg-secondary)', fontSize: '12px',
+                fontFamily: 'var(--font-mono)'
+              }}>
+                <div style={{ color: 'var(--accent-color)', marginBottom: '4px' }}>
+                  → {tc.name}
                 </div>
+                {tc.input && <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
+                  {JSON.stringify(tc.input, null, 2)}
+                </pre>}
+                {tc.result && (
+                  <div style={{ marginTop: '4px', borderTop: '1px solid var(--border-color)', paddingTop: '4px' }}>
+                    <div style={{ color: 'var(--text-success, #22c55e)', marginBottom: '2px', fontSize: '11px' }}>← 返回结果:</div>
+                    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--text-secondary)', maxHeight: '200px', overflow: 'auto' }}>
+                      {formatOutput(tc.result)}
+                    </pre>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

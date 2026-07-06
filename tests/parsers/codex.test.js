@@ -46,25 +46,25 @@ function tokenCountEvent(timestamp, lastUsage) {
   };
 }
 
-function turnContext(timestamp, model) {
+function turnContext(timestamp, model, turnId) {
   return {
     type: 'turn_context',
     timestamp,
     payload: {
-      turn_id: 'turn-1',
+      turn_id: turnId || 'turn-1',
       model: model || 'codex',
       cwd: '/test'
     }
   };
 }
 
-function taskCompleteEvent(timestamp, durationMs) {
+function taskCompleteEvent(timestamp, durationMs, turnId) {
   return {
     type: 'event_msg',
     timestamp,
     payload: {
       type: 'task_complete',
-      turn_id: 'turn-1',
+      turn_id: turnId || 'turn-1',
       completed_at: new Date(timestamp).getTime(),
       duration_ms: durationMs || 1000,
       time_to_first_token_ms: 200
@@ -201,15 +201,16 @@ describe('codex parser', () => {
       expect(result.session.title).toBe('codex-sid-1');
     });
 
-    it('parses function_call into toolCalls on preceding assistant', () => {
+    it('parses function_call into toolCalls on following assistant', () => {
       const meta = metaRecord();
-      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:01.000Z' });
       const fc = {
         type: 'response_item',
-        timestamp: '2026-01-01T00:00:02.000Z',
+        timestamp: '2026-01-01T00:00:01.000Z',
         payload: { type: 'function_call', name: 'exec_command', call_id: 'call-1', arguments: '{"cmd": "ls -la"}' }
       };
-      const raw = buildJSONL(meta, a, fc);
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:02.000Z' });
+      // In Codex, function_call records appear BEFORE the following assistant message
+      const raw = buildJSONL(meta, fc, a);
       const result = parser.parse(raw);
       expect(result.messages).toHaveLength(1);
       expect(result.messages[0].toolCalls).toHaveLength(1);
@@ -219,28 +220,30 @@ describe('codex parser', () => {
 
     it('maps function_call_output to tool call result via call_id', () => {
       const meta = metaRecord();
-      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:01.000Z' });
+      const fc = {
+        type: 'response_item',
+        timestamp: '2026-01-01T00:00:01.000Z',
+        payload: { type: 'function_call', name: 'exec_command', call_id: 'call-1', arguments: '{}' }
+      };
       const output = {
         type: 'response_item',
         timestamp: '2026-01-01T00:00:01.500Z',
         payload: { type: 'function_call_output', call_id: 'call-1', output: 'file1.txt\nfile2.txt' }
       };
-      const fc = {
-        type: 'response_item',
-        timestamp: '2026-01-01T00:00:02.000Z',
-        payload: { type: 'function_call', name: 'exec_command', call_id: 'call-1', arguments: '{}' }
-      };
-      const raw = buildJSONL(meta, a, output, fc);
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:02.000Z' });
+      // In Codex, function_call precedes the assistant; outputMap is built before tool call attachment
+      const raw = buildJSONL(meta, fc, output, a);
       const result = parser.parse(raw);
       expect(result.messages[0].toolCalls[0].result).toBe('file1.txt\nfile2.txt');
     });
 
     it('counts function_calls in tool stats', () => {
       const meta = metaRecord();
-      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:01.000Z' });
-      const fc1 = { type: 'response_item', timestamp: '2026-01-01T00:00:02.000Z', payload: { type: 'function_call', name: 'exec_command', call_id: 'c1', arguments: '{}' } };
-      const fc2 = { type: 'response_item', timestamp: '2026-01-01T00:00:03.000Z', payload: { type: 'function_call', name: 'write_stdin', call_id: 'c2', arguments: '{}' } };
-      const raw = buildJSONL(meta, a, fc1, fc2);
+      const fc1 = { type: 'response_item', timestamp: '2026-01-01T00:00:01.000Z', payload: { type: 'function_call', name: 'exec_command', call_id: 'c1', arguments: '{}' } };
+      const fc2 = { type: 'response_item', timestamp: '2026-01-01T00:00:02.000Z', payload: { type: 'function_call', name: 'write_stdin', call_id: 'c2', arguments: '{}' } };
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'running' }], timestamp: '2026-01-01T00:00:03.000Z' });
+      // In Codex, function_call records precede the assistant message
+      const raw = buildJSONL(meta, fc1, fc2, a);
       const result = parser.parse(raw);
       expect(result.messages[0].toolCalls).toHaveLength(2);
       expect(result.stats.toolCallCount).toBe(2);
@@ -347,6 +350,30 @@ describe('codex parser', () => {
       const result = parser.parse(raw);
       expect(result.messages[1].duration).toBe(5678);
       expect(result.stats.totalDuration).toBe(5678);
+    });
+
+    it('does not merge function_calls across turn boundaries', () => {
+      const meta = metaRecord();
+      // Turn 1: function_call but no assistant text — creates its own virtual assistant block
+      const tc1 = turnContext('t1', 'codex', 'turn-A');
+      const fc1 = { type: 'response_item', timestamp: 't2', payload: { type: 'function_call', name: 'exec_command', call_id: 'c1', arguments: '{"cmd":"old"}' } };
+      const tc1End = taskCompleteEvent('t3', 100, 'turn-A');
+      // Turn 2: user message then assistant
+      const tc2 = turnContext('t4', 'codex', 'turn-B');
+      const u = responseItem({ role: 'user', content: [{ type: 'input_text', text: 'hello' }], timestamp: 't5' });
+      const a = responseItem({ role: 'assistant', content: [{ type: 'input_text', text: 'hi' }], timestamp: 't6' });
+      const raw = buildJSONL(meta, tc1, fc1, tc1End, tc2, u, a);
+      const result = parser.parse(raw);
+      // Turn-A function_call creates its own virtual assistant block (not merged into turn-B)
+      const asstMsgs = result.messages.filter(m => m.role === 'assistant');
+      expect(asstMsgs).toHaveLength(2);
+      // First is virtual: has the tool call, no text
+      expect(asstMsgs[0].toolCalls).toHaveLength(1);
+      expect(asstMsgs[0].toolCalls[0].name).toBe('exec_command');
+      // Second is the real assistant from turn-B (no tool calls)
+      expect(asstMsgs[1].toolCalls).toBeUndefined();
+      expect(asstMsgs[1].content[0].text).toBe('hi');
+      expect(result.stats.toolCallCount).toBe(1);
     });
 
     it('aggregates total duration across multiple turns', () => {

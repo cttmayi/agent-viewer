@@ -61,6 +61,19 @@ export function initWatcher(config, store, wss) {
         return;
       }
 
+      // Codex subagent linking
+      if (result.subagentRefs) {
+        for (const ref of result.subagentRefs) {
+          store.registerCodexSubagentLink(ref.agentThreadId, result.session.id, filePath, ref.taskName);
+        }
+      }
+      // Check if this session is a subagent of another Codex session
+      const codexParent = store.lookupCodexSubagentLink(result.session.id);
+      if (codexParent) {
+        store.addCodexSidechainGroup(codexParent.parentSessionId, result.session.id, result.messages.map(normalizeContent), filePath);
+        return; // subagent file: don't add to main session list
+      }
+
       store.set(filePath, result);
       wss.broadcast({ type: 'session-added', session: result.session });
     } catch (err) {
@@ -95,6 +108,8 @@ export function initWatcher(config, store, wss) {
       for (const dir of dirs) {
         await scanDirectory(dir);
       }
+      // Second pass: link any Codex subagents whose parent was loaded before child
+      store.linkCodexSubagents();
     },
     processFile,
     startWatching,

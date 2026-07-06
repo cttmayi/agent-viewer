@@ -8,6 +8,8 @@ import path from 'path';
 
 const sessions = new Map();
 const sidechains = new Map(); // sessionId → Message[][] (array of groups, one per subagent file)
+const codexSubagentLinks = new Map(); // agentThreadId → { parentSessionId, parentFilePath, taskName }
+const linkedCodexChildren = new Set(); // "parentSessionId::childSessionId" — dedup
 
 export function initStore() {
   sessions.clear();
@@ -20,21 +22,62 @@ export function initStore() {
     buildDirectoryTree,
     has,
     search,
-    clear: () => { sessions.clear(); sidechains.clear(); },
+    clear: () => { sessions.clear(); sidechains.clear(); codexSubagentLinks.clear(); linkedCodexChildren.clear(); },
     addSidechainGroup,
-    getSidechainGroups
+    getSidechainGroups,
+    registerCodexSubagentLink,
+    lookupCodexSubagentLink,
+    linkCodexSubagents,
+    addCodexSidechainGroup
   };
 }
 
-function addSidechainGroup(sessionId, messages) {
+function addSidechainGroup(sessionId, messages, filePath = '') {
   if (!sidechains.has(sessionId)) {
     sidechains.set(sessionId, []);
   }
-  sidechains.get(sessionId).push(messages);
+  sidechains.get(sessionId).push({ messages, filePath });
 }
 
 function getSidechainGroups(sessionId) {
   return sidechains.get(sessionId) || [];
+}
+
+function registerCodexSubagentLink(agentThreadId, parentSessionId, parentFilePath, taskName) {
+  codexSubagentLinks.set(agentThreadId, { parentSessionId, parentFilePath, taskName });
+}
+
+function lookupCodexSubagentLink(agentThreadId) {
+  return codexSubagentLinks.get(agentThreadId) || null;
+}
+
+function addCodexSidechainGroup(parentSessionId, childSessionId, messages, filePath = '') {
+  const key = `${parentSessionId}::${childSessionId}`;
+  if (linkedCodexChildren.has(key)) return;
+  linkedCodexChildren.add(key);
+  addSidechainGroup(parentSessionId, messages, filePath);
+}
+
+function linkCodexSubagents() {
+  for (const [filePath, entry] of sessions) {
+    const sessionId = entry.session?.id;
+    if (!sessionId) continue;
+    const link = codexSubagentLinks.get(sessionId);
+    if (link && entry.messages) {
+      const key = `${link.parentSessionId}::${sessionId}`;
+      if (linkedCodexChildren.has(key)) continue;
+      linkedCodexChildren.add(key);
+      addSidechainGroup(link.parentSessionId, entry.messages.map(normalizeContent), filePath);
+      sessions.delete(filePath); // remove subagent from main session list
+    }
+  }
+}
+
+function normalizeContent(msg) {
+  if (msg.content && !Array.isArray(msg.content)) {
+    msg.content = [{ type: 'text', text: String(msg.content) }];
+  }
+  return msg;
 }
 
 function getAll() {
